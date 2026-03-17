@@ -1,6 +1,7 @@
 ---
 name: qa-design-review
 version: 1.0.0
+model: sonnet
 description: |
   Designer's eye QA: finds visual inconsistency, spacing issues, hierarchy problems,
   AI slop patterns, and slow interactions — then fixes them. Iteratively fixes issues

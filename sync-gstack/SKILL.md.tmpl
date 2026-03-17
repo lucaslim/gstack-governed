@@ -1,6 +1,7 @@
 ---
 name: sync-gstack
 version: 2.0.0
+model: sonnet
 description: |
   Sync gstack-governed fork with upstream gstack. Fetches latest from garrytan/gstack,
   modifies the generator (preamble trim) and templates (React/TS adaptations),
