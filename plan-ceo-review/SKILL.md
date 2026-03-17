@@ -12,6 +12,11 @@ allowed-tools:
   - Glob
   - Bash
   - AskUserQuestion
+  - mcp__serena__activate_project
+  - mcp__serena__get_symbols_overview
+  - mcp__serena__find_symbol
+  - mcp__serena__find_referencing_symbols
+  - mcp__serena__search_for_pattern
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -27,6 +32,31 @@ allowed-tools:
 Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
 
 Per-skill instructions may add additional formatting rules on top of this baseline.
+
+## Serena Code Navigation (optional, reduces token usage)
+
+If Serena MCP tools are available (`mcp__serena__*`), prefer them for code lookup tasks.
+They provide symbol-level precision that avoids reading entire files.
+
+**Activation (run once at start):**
+Try `mcp__serena__activate_project` with the repo root path. If it succeeds, Serena
+is active. If it fails or the tool is unavailable, skip all Serena tools and use
+Grep + Read instead.
+
+**If activation succeeds but symbol lookups return empty results:** Run
+`mcp__serena__onboarding` once — Serena needs a one-time index build per project.
+
+**When Serena is active, prefer these patterns:**
+
+| Task | Without Serena | With Serena |
+|------|---------------|-------------|
+| Understand file structure | Read the whole file | `get_symbols_overview` (~90% fewer tokens) |
+| Find where a symbol is used | Grep for name → Read each file | `find_referencing_symbols` (returns snippets only) |
+| Read a specific function | Read the whole file | `find_symbol` with `include_body=true` |
+| Search for a pattern | Grep | `search_for_pattern` (equivalent) |
+
+**Fallback rule:** If any Serena tool call fails, fall back to Grep + Read for that
+operation. Do not retry — switch immediately.
 
 ## Step 0: Detect base branch
 
@@ -60,7 +90,7 @@ Do NOT make any code changes. Do NOT start implementation. Your only job right n
 
 ## Prime Directives
 1. Zero silent failures. Every failure mode must be visible — to the system, to the team, to the user. If a failure can happen silently, that is a critical defect in the plan.
-2. Every error has a name. Don't say "handle errors." Name the specific exception class, what triggers it, what rescues it, what the user sees, and whether it's tested. rescue StandardError is a code smell — call it out.
+2. Every error has a name. Don't say "handle errors." Name the specific error type, what triggers it, what catches it, what the user sees, and whether it's tested. `catch(error)` with no type narrowing is a code smell — call it out.
 3. Data flows have shadow paths. Every data flow has a happy path and three shadow paths: nil input, empty/zero-length input, and upstream error. Trace all four for every new flow.
 4. Interactions have edge cases. Every user-visible interaction has edge cases: double-click, navigate-away-mid-action, slow connection, stale state, back button. Map them.
 5. Observability is scope, not afterthought. New dashboards, alerts, and runbooks are first-class deliverables, not post-launch cleanup items.
@@ -83,8 +113,8 @@ Do NOT make any code changes. Do NOT start implementation. Your only job right n
 * Diagram maintenance is part of the change — stale diagrams are worse than none.
 
 ## Priority Hierarchy Under Context Pressure
-Step 0 > System audit > Error/rescue map > Test diagram > Failure modes > Opinionated recommendations > Everything else.
-Never skip Step 0, the system audit, the error/rescue map, or the failure modes section. These are the highest-leverage outputs.
+Step 0 > System audit > Error/recovery map > Test diagram > Failure modes > Opinionated recommendations > Everything else.
+Never skip Step 0, the system audit, the error/recovery map, or the failure modes section. These are the highest-leverage outputs.
 
 ## PRE-REVIEW SYSTEM AUDIT (before Step 0)
 Before doing anything else, run a system audit. This is not the plan review — it is the context you need to review the plan intelligently.
@@ -198,7 +228,7 @@ Evaluate and diagram:
 Required ASCII diagram: full system architecture showing new components and their relationships to existing ones.
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues or fix is obvious, state what you'll do and move on — don't waste a question. Do NOT proceed until user responds.
 
-### Section 2: Error & Rescue Map
+### Section 2: Error & Recovery Map
 This is the section that catches silent failures. It is not optional.
 For every new method, service, or codepath that can fail, fill in this table:
 ```
@@ -222,8 +252,8 @@ For every new method, service, or codepath that can fail, fill in this table:
 Rules for this section:
 * `catch (error)` with no type narrowing is ALWAYS a smell. Name the specific error types.
 * `catch (e) { console.error(e.message) }` is insufficient. Log the full context: what was being attempted, with what arguments, for what user/request.
-* Every rescued error must either: retry with backoff, degrade gracefully with a user-visible message, or re-raise with added context. "Swallow and continue" is almost never acceptable.
-* For each GAP (unrescued error that should be rescued): specify the rescue action and what the user should see.
+* Every caught error must either: retry with backoff, degrade gracefully with a user-visible message, or re-throw with added context. "Swallow and continue" is almost never acceptable.
+* For each GAP (uncaught error that should be handled): specify the recovery action and what the user should see.
 * For LLM/AI service calls specifically: what happens when the response is malformed? When it's empty? When it hallucinates invalid JSON? When the model returns a refusal? Each of these is a distinct failure mode.
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues or fix is obvious, state what you'll do and move on — don't waste a question. Do NOT proceed until user responds.
 
@@ -407,15 +437,15 @@ List existing code/flows that partially solve sub-problems and whether the plan 
 ### "Dream state delta" section
 Where this plan leaves us relative to the 12-month ideal.
 
-### Error & Rescue Registry (from Section 2)
-Complete table of every method that can fail, every exception class, rescued status, rescue action, user impact.
+### Error & Recovery Registry (from Section 2)
+Complete table of every method that can fail, every error type, caught status, recovery action, user impact.
 
 ### Failure Modes Registry
 ```
-  CODEPATH | FAILURE MODE   | RESCUED? | TEST? | USER SEES?     | LOGGED?
+  CODEPATH | FAILURE MODE   | CAUGHT?  | TEST? | USER SEES?     | LOGGED?
   ---------|----------------|----------|-------|----------------|--------
 ```
-Any row with RESCUED=N, TEST=N, USER SEES=Silent → **CRITICAL GAP**.
+Any row with CAUGHT=N, TEST=N, USER SEES=Silent → **CRITICAL GAP**.
 
 ### TODOS.md updates
 Present each potential TODO as its own individual AskUserQuestion. Never batch TODOs — one per question. Never silently skip this step. Follow the format in `.claude/skills/review/TODOS-format.md`.
@@ -468,7 +498,7 @@ List every ASCII diagram in files this plan touches. Still accurate?
   | NOT in scope         | written (___ items)                          |
   | What already exists  | written                                     |
   | Dream state delta    | written                                     |
-  | Error/rescue registry| ___ methods, ___ CRITICAL GAPS              |
+  | Error/recovery registry| ___ methods, ___ CRITICAL GAPS            |
   | Failure modes        | ___ total, ___ CRITICAL GAPS                |
   | TODOS.md updates     | ___ items proposed                          |
   | Delight opportunities| ___ identified (EXPANSION only)             |
