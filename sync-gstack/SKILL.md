@@ -13,6 +13,15 @@ allowed-tools:
   - Grep
   - Glob
   - AskUserQuestion
+  - mcp__serena__find_symbol
+  - mcp__serena__get_symbols_overview
+  - mcp__serena__find_referencing_symbols
+  - mcp__serena__search_for_pattern
+  - mcp__serena__find_file
+  - mcp__serena__list_dir
+  - mcp__serena__replace_symbol_body
+  - mcp__serena__insert_after_symbol
+  - mcp__serena__insert_before_symbol
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -81,7 +90,23 @@ git checkout -b sync-upstream-$(date +%Y%m%d) upstream/main
 
 At this point the working tree matches upstream exactly — no governed modifications yet.
 
+### Step 2.5 — Restore fork-only files
+
+Upstream may have deleted files that only exist in the governed fork. Restore them:
+
+```bash
+git checkout origin/main -- sync-gstack/ .serena/ .gitignore
+```
+
+This preserves fork-only files: the sync-gstack skill, Serena project config + memories,
+and the .gitignore (which has the `!.serena/` override).
+
 ### Step 3 — Modify the generator (preamble trim)
+
+Use Serena's symbolic tools to explore and edit the generator efficiently:
+- `get_symbols_overview` on `scripts/gen-skill-docs.ts` to see all functions
+- `find_symbol` with `include_body=true` to read specific function bodies
+- `replace_symbol_body` to replace function implementations cleanly
 
 The generator is `scripts/gen-skill-docs.ts`. The `generatePreamble()` function controls
 what the `PREAMBLE` placeholder resolves to in every template.
@@ -112,6 +137,9 @@ contributor mode), skip this step — upstream may have adopted the same trim.
 Also check `generateQAMethodology()` in the same file. If upstream re-added a `### Rails`
 framework subsection, remove it. Ensure `### General SPA (React, Vue, Angular)` is present
 with hydration, client-side routing, CLS, and stale state checks.
+
+Also check `generateDesignMethodology()` if it exists. Verify it contains no Rails-specific
+content (e.g. `.gstack/` paths, Rails view references). If clean, leave it as-is.
 
 **Verification:**
 ```bash
@@ -211,7 +239,7 @@ framework-specific content to previously agnostic skills.
 
 Scan every `.tmpl` file not already handled above:
 ```bash
-grep -rn 'ActiveRecord\|bin/test-lane\|npm run test\|Rails\|Models/Controllers\|Controllers & views\|Models & services\|rescue\|migration' \
+grep -rn 'ActiveRecord\|bin/test-lane\|npm run test\|Rails\|Models/Controllers\|Controllers & views\|Models & services\|rescue\|migration\|greptile\|greptile-triage\|greptile-history' \
   document-release/SKILL.md.tmpl \
   gstack-upgrade/SKILL.md.tmpl \
   setup-browser-cookies/SKILL.md.tmpl \
@@ -230,6 +258,44 @@ is new — read it, check for Rails/Ruby vocabulary, and apply adaptations if ne
 If grep matches are found in any file, apply the same vocabulary replacements described
 in the earlier steps. If all files are clean, they pass through unchanged.
 
+---
+
+**4i. Remove all Greptile integration**
+
+Upstream includes a Greptile code review integration that the governed fork does not use.
+Strip all Greptile references from templates and delete Greptile-specific files.
+
+**Delete `review/greptile-triage.md`** if it exists — the entire file is Greptile-specific:
+```bash
+rm -f review/greptile-triage.md
+```
+
+**In `ship/SKILL.md.tmpl`:**
+- Remove any Step related to "Address Greptile review comments" (e.g. Step 3.75)
+- Remove Greptile from any batched item lists (e.g. "Greptile review comments that need user decision")
+- Remove Greptile reply template instructions and greptile-history references
+- Remove any "Greptile Review" output section from the report template
+
+**In `review/SKILL.md.tmpl`:**
+- Remove any Step related to "Check for Greptile review comments" (e.g. Step 2.5)
+- Remove the "Greptile comment resolution" subsection
+- Remove Greptile summary lines from output format (e.g. `+ N Greptile comments`)
+- Remove greptile-triage.md read instructions and reply template references
+
+**In `retro/SKILL.md.tmpl`:**
+- Remove greptile-history fetch commands (e.g. `cat ~/.gstack/greptile-history.md`)
+- Remove the Greptile signal metric row and its computation logic
+- Remove `"greptile"` entries from any JSON schema definitions
+
+**In any other `.tmpl` file:** Scan for and remove Greptile references.
+
+**Verification:**
+```bash
+grep -rni 'greptile' */SKILL.md.tmpl SKILL.md.tmpl review/greptile-triage.md 2>/dev/null
+```
+
+This should return empty. If matches remain, trace and remove them.
+
 ### Step 5 — Regenerate all SKILL.md files
 
 ```bash
@@ -245,18 +311,20 @@ Every `*/SKILL.md` should show changes matching the template/generator modificat
 
 **Sanity check** — confirm no governed-trimmed content leaked through:
 ```bash
-grep -rn '_UPD=\|Contributor Mode\|bin/test-lane\|ActiveRecord\|Controllers & views' */SKILL.md SKILL.md
+grep -rn '_UPD=\|Contributor Mode\|bin/test-lane\|ActiveRecord\|Controllers & views\|greptile' */SKILL.md SKILL.md
 ```
 
 If any matches are found, trace back to the template or generator and fix.
 
 ### Step 6 — Commit and push
 
-Stage templates, generator, and generated files:
+Stage templates, generator, generated files, fork-only files, and any deleted Greptile files:
 ```bash
 git add scripts/gen-skill-docs.ts
 git add $(find . -name 'SKILL.md.tmpl' -not -path './node_modules/*')
 git add $(find . -name 'SKILL.md' -not -path './node_modules/*' -not -path './sync-gstack/*')
+git add sync-gstack/ .serena/ .gitignore
+git add review/greptile-triage.md 2>/dev/null || true
 ```
 
 Read the upstream VERSION for the commit message:
@@ -298,6 +366,7 @@ Synced with upstream garrytan/gstack and applied governed modifications:
 - plan-eng-review: Rails errors → React/TS, added BE team request section, replaced test commands
 - plan-ceo-review: same vocab as plan-eng-review
 - qa + qa-only: removed Rails subsection, .gstack/ → .local-context/
+- All skills: stripped Greptile integration (review comments, triage, history, reply templates)
 
 **Stack-agnostic (passed through):** document-release, gstack-upgrade, setup-browser-cookies
 
@@ -314,6 +383,8 @@ Synced with upstream garrytan/gstack and applied governed modifications:
 - [ ] Templates: no `bin/test-lane`, `npm run test`, or Rails vocabulary
 - [ ] Templates: `.local-context/` used instead of `.gstack/` for QA artifacts
 - [ ] Generated: `bun run gen:skill-docs --dry-run` shows all FRESH
+- [ ] No Greptile references in any template or generated file
+- [ ] review/greptile-triage.md deleted (if it existed upstream)
 - [ ] review/checklist.md, review/TODOS-format.md untouched
 - [ ] Stack-agnostic skills passed through unchanged
 EOF
@@ -347,6 +418,9 @@ All skills and their sync treatment:
 | plan-ceo-review | plan-ceo-review/SKILL.md.tmpl | Same as plan-eng-review |
 | qa | qa/SKILL.md.tmpl | Remove Rails subsection; .gstack/ → .local-context/ |
 | qa-only | qa-only/SKILL.md.tmpl | Same as qa |
+| design-consultation | design-consultation/SKILL.md.tmpl | .gstack/ → .local-context/; strip Greptile; verify clean |
+| plan-design-review | plan-design-review/SKILL.md.tmpl | .gstack/ → .local-context/; strip Greptile; verify clean |
+| qa-design-review | qa-design-review/SKILL.md.tmpl | .gstack/ → .local-context/; strip Greptile; verify clean |
 | document-release | document-release/SKILL.md.tmpl | Verify clean, then pass through |
 | gstack-upgrade | gstack-upgrade/SKILL.md.tmpl | Verify clean, then pass through |
 | setup-browser-cookies | setup-browser-cookies/SKILL.md.tmpl | Verify clean, then pass through |
