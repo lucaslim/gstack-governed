@@ -113,17 +113,17 @@ Review the diff for structural issues that tests don't catch.
 
 7. **After all fixes (auto + user-approved):**
    - If ANY fixes were applied: commit fixed files by name (`git add <fixed-files> && git commit -m "fix: pre-landing review fixes"`), then **STOP** and tell the user to run `/ship` again to re-test.
-   - If no fixes applied (all ASK items skipped, or no issues found): continue to Step 4.
+   - If no fixes applied (all ASK items skipped, or no issues found): continue to Step 5.
 
 8. Output summary: `Pre-Landing Review: N issues — M auto-fixed, K asked (J fixed, L skipped)`
 
    If no issues found: `Pre-Landing Review: No issues found.`
 
-Save the review output — it goes into the PR body in Step 6.
+Save the review output — it goes into the PR body in Step 7.
 
 ---
 
-## Step 6: Commit (bisectable chunks)
+## Step 5: Commit (bisectable chunks)
 
 **Goal:** Create small, logical commits that work well with `git bisect` and help LLMs understand what changed.
 
@@ -160,7 +160,7 @@ EOF
 
 ---
 
-## Step 5: Push
+## Step 6: Push
 
 Push to the remote with upstream tracking:
 
@@ -170,7 +170,7 @@ git push -u origin <branch-name>
 
 ---
 
-## Step 6: Create PR
+## Step 7: Create PR
 
 Create a pull request using `gh`:
 
