@@ -109,6 +109,15 @@ git shortlog origin/<default> --since="<window>" -sn --no-merges
 
 # 8. TODOS.md backlog (if available)
 cat TODOS.md 2>/dev/null || true
+
+# 10. Test file count
+find . -name '*.test.*' -o -name '*.spec.*' -o -name '*_test.*' -o -name '*_spec.*' 2>/dev/null | grep -v node_modules | wc -l
+
+# 11. Regression test commits in window
+git log origin/<default> --since="<window>" --oneline --grep="test(qa):" --grep="test(design):" --grep="test: coverage"
+
+# 12. Test files changed in window
+git log origin/<default> --since="<window>" --format="" --name-only | grep -E '\.(test|spec)\.' | sort -u | wc -l
 ```
 
 ### Step 2: Compute Metrics
@@ -129,6 +138,7 @@ Calculate and present these metrics in a summary table:
 | Active days | N |
 | Detected sessions | N |
 | Avg LOC/session-hour | N |
+| Test Health | N total tests · M added this period · K regression tests |
 
 Then show a **per-author leaderboard** immediately below:
 
@@ -344,7 +354,17 @@ Use the Write tool to save the JSON file with this schema:
 }
 ```
 
-**Note:** Only include the `backlog` field if `TODOS.md` exists. If it has no data, omit the field entirely.
+**Note:** Only include the `backlog` field if `TODOS.md` exists. Only include the `test_health` field if test files were found (command 10 returns > 0). If any has no data, omit the field entirely.
+
+Include test health data in the JSON when test files exist:
+```json
+  "test_health": {
+    "total_test_files": 47,
+    "tests_added_this_period": 5,
+    "regression_test_commits": 3,
+    "test_files_changed": 8
+  }
+```
 
 Include backlog data in the JSON when TODOS.md exists:
 ```json
@@ -398,6 +418,13 @@ Narrative covering:
 - Test LOC ratio trend
 - Hotspot analysis (are the same files churning?)
 - Any XL PRs that should have been split
+
+### Test Health
+- Total test files: N (from command 10)
+- Tests added this period: M (from command 12 — test files changed)
+- Regression test commits: list `test(qa):` and `test(design):` and `test: coverage` commits from command 11
+- If prior retro exists and has `test_health`: show delta "Test count: {last} → {now} (+{delta})"
+- If test ratio < 20%: flag as growth area — "100% test coverage is the goal. Tests make vibe coding safe."
 
 ### Focus & Highlights
 (from Step 8)

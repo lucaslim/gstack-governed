@@ -420,7 +420,537 @@ Minimum 0 per category.
 7. **Test like a user.** Use realistic data. Walk through complete workflows end-to-end.
 8. **Depth over breadth.** 5-10 well-documented issues with evidence > 20 vague descriptions.
 9. **Never delete output files.** Screenshots and reports accumulate — that's intentional.
-10. **Use \`snapshot -C\` for tricky UIs.** Finds clickable divs that the accessibility tree misses.`;
+10. **Use \`snapshot -C\` for tricky UIs.** Finds clickable divs that the accessibility tree misses.
+11. **Show screenshots to the user.** After every \`$B screenshot\`, \`$B snapshot -a -o\`, or \`$B responsive\` command, use the Read tool on the output file(s) so the user can see them inline. For \`responsive\` (3 files), Read all three. This is critical — without it, screenshots are invisible to the user.`;
+}
+
+function generateDesignMethodology(): string {
+  return `## Modes
+
+### Full (default)
+Systematic review of all pages reachable from homepage. Visit 5-8 pages. Full checklist evaluation, responsive screenshots, interaction flow testing. Produces complete design audit report with letter grades.
+
+### Quick (\`--quick\`)
+Homepage + 2 key pages only. First Impression + Design System Extraction + abbreviated checklist. Fastest path to a design score.
+
+### Deep (\`--deep\`)
+Comprehensive review: 10-15 pages, every interaction flow, exhaustive checklist. For pre-launch audits or major redesigns.
+
+### Diff-aware (automatic when on a feature branch with no URL)
+When on a feature branch, scope to pages affected by the branch changes:
+1. Analyze the branch diff: \`git diff main...HEAD --name-only\`
+2. Map changed files to affected pages/routes
+3. Detect running app on common local ports (3000, 4000, 8080)
+4. Audit only affected pages, compare design quality before/after
+
+### Regression (\`--regression\` or previous \`design-baseline.json\` found)
+Run full audit, then load previous \`design-baseline.json\`. Compare: per-category grade deltas, new findings, resolved findings. Output regression table in report.
+
+---
+
+## Phase 1: First Impression
+
+The most uniquely designer-like output. Form a gut reaction before analyzing anything.
+
+1. Navigate to the target URL
+2. Take a full-page desktop screenshot: \`$B screenshot "$REPORT_DIR/screenshots/first-impression.png"\`
+3. Write the **First Impression** using this structured critique format:
+   - "The site communicates **[what]**." (what it says at a glance — competence? playfulness? confusion?)
+   - "I notice **[observation]**." (what stands out, positive or negative — be specific)
+   - "The first 3 things my eye goes to are: **[1]**, **[2]**, **[3]**." (hierarchy check — are these intentional?)
+   - "If I had to describe this in one word: **[word]**." (gut verdict)
+
+This is the section users read first. Be opinionated. A designer doesn't hedge — they react.
+
+---
+
+## Phase 2: Design System Extraction
+
+Extract the actual design system the site uses (not what a DESIGN.md says, but what's rendered):
+
+\`\`\`bash
+# Fonts in use (capped at 500 elements to avoid timeout)
+$B js "JSON.stringify([...new Set([...document.querySelectorAll('*')].slice(0,500).map(e => getComputedStyle(e).fontFamily))])"
+
+# Color palette in use
+$B js "JSON.stringify([...new Set([...document.querySelectorAll('*')].slice(0,500).flatMap(e => [getComputedStyle(e).color, getComputedStyle(e).backgroundColor]).filter(c => c !== 'rgba(0, 0, 0, 0)'))])"
+
+# Heading hierarchy
+$B js "JSON.stringify([...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].map(h => ({tag:h.tagName, text:h.textContent.trim().slice(0,50), size:getComputedStyle(h).fontSize, weight:getComputedStyle(h).fontWeight})))"
+
+# Touch target audit (find undersized interactive elements)
+$B js "JSON.stringify([...document.querySelectorAll('a,button,input,[role=button]')].filter(e => {const r=e.getBoundingClientRect(); return r.width>0 && (r.width<44||r.height<44)}).map(e => ({tag:e.tagName, text:(e.textContent||'').trim().slice(0,30), w:Math.round(e.getBoundingClientRect().width), h:Math.round(e.getBoundingClientRect().height)})).slice(0,20))"
+
+# Performance baseline
+$B perf
+\`\`\`
+
+Structure findings as an **Inferred Design System**:
+- **Fonts:** list with usage counts. Flag if >3 distinct font families.
+- **Colors:** palette extracted. Flag if >12 unique non-gray colors. Note warm/cool/mixed.
+- **Heading Scale:** h1-h6 sizes. Flag skipped levels, non-systematic size jumps.
+- **Spacing Patterns:** sample padding/margin values. Flag non-scale values.
+
+After extraction, offer: *"Want me to save this as your DESIGN.md? I can lock in these observations as your project's design system baseline."*
+
+---
+
+## Phase 3: Page-by-Page Visual Audit
+
+For each page in scope:
+
+\`\`\`bash
+$B goto <url>
+$B snapshot -i -a -o "$REPORT_DIR/screenshots/{page}-annotated.png"
+$B responsive "$REPORT_DIR/screenshots/{page}"
+$B console --errors
+$B perf
+\`\`\`
+
+### Auth Detection
+
+After the first navigation, check if the URL changed to a login-like path:
+\`\`\`bash
+$B url
+\`\`\`
+If URL contains \`/login\`, \`/signin\`, \`/auth\`, or \`/sso\`: the site requires authentication. AskUserQuestion: "This site requires authentication. Want to import cookies from your browser? Run \`/setup-browser-cookies\` first if needed."
+
+### Design Audit Checklist (10 categories, ~80 items)
+
+Apply these at each page. Each finding gets an impact rating (high/medium/polish) and category.
+
+**1. Visual Hierarchy & Composition** (8 items)
+- Clear focal point? One primary CTA per view?
+- Eye flows naturally top-left to bottom-right?
+- Visual noise — competing elements fighting for attention?
+- Information density appropriate for content type?
+- Z-index clarity — nothing unexpectedly overlapping?
+- Above-the-fold content communicates purpose in 3 seconds?
+- Squint test: hierarchy still visible when blurred?
+- White space is intentional, not leftover?
+
+**2. Typography** (15 items)
+- Font count <=3 (flag if more)
+- Scale follows ratio (1.25 major third or 1.333 perfect fourth)
+- Line-height: 1.5x body, 1.15-1.25x headings
+- Measure: 45-75 chars per line (66 ideal)
+- Heading hierarchy: no skipped levels (h1→h3 without h2)
+- Weight contrast: >=2 weights used for hierarchy
+- No blacklisted fonts (Papyrus, Comic Sans, Lobster, Impact, Jokerman)
+- If primary font is Inter/Roboto/Open Sans/Poppins → flag as potentially generic
+- \`text-wrap: balance\` or \`text-pretty\` on headings (check via \`$B css <heading> text-wrap\`)
+- Curly quotes used, not straight quotes
+- Ellipsis character (\`…\`) not three dots (\`...\`)
+- \`font-variant-numeric: tabular-nums\` on number columns
+- Body text >= 16px
+- Caption/label >= 12px
+- No letterspacing on lowercase text
+
+**3. Color & Contrast** (10 items)
+- Palette coherent (<=12 unique non-gray colors)
+- WCAG AA: body text 4.5:1, large text (18px+) 3:1, UI components 3:1
+- Semantic colors consistent (success=green, error=red, warning=yellow/amber)
+- No color-only encoding (always add labels, icons, or patterns)
+- Dark mode: surfaces use elevation, not just lightness inversion
+- Dark mode: text off-white (~#E0E0E0), not pure white
+- Primary accent desaturated 10-20% in dark mode
+- \`color-scheme: dark\` on html element (if dark mode present)
+- No red/green only combinations (8% of men have red-green deficiency)
+- Neutral palette is warm or cool consistently — not mixed
+
+**4. Spacing & Layout** (12 items)
+- Grid consistent at all breakpoints
+- Spacing uses a scale (4px or 8px base), not arbitrary values
+- Alignment is consistent — nothing floats outside the grid
+- Rhythm: related items closer together, distinct sections further apart
+- Border-radius hierarchy (not uniform bubbly radius on everything)
+- Inner radius = outer radius - gap (nested elements)
+- No horizontal scroll on mobile
+- Max content width set (no full-bleed body text)
+- \`env(safe-area-inset-*)\` for notch devices
+- URL reflects state (filters, tabs, pagination in query params)
+- Flex/grid used for layout (not JS measurement)
+- Breakpoints: mobile (375), tablet (768), desktop (1024), wide (1440)
+
+**5. Interaction States** (10 items)
+- Hover state on all interactive elements
+- \`focus-visible\` ring present (never \`outline: none\` without replacement)
+- Active/pressed state with depth effect or color shift
+- Disabled state: reduced opacity + \`cursor: not-allowed\`
+- Loading: skeleton shapes match real content layout
+- Empty states: warm message + primary action + visual (not just "No items.")
+- Error messages: specific + include fix/next step
+- Success: confirmation animation or color, auto-dismiss
+- Touch targets >= 44px on all interactive elements
+- \`cursor: pointer\` on all clickable elements
+
+**6. Responsive Design** (8 items)
+- Mobile layout makes *design* sense (not just stacked desktop columns)
+- Touch targets sufficient on mobile (>= 44px)
+- No horizontal scroll on any viewport
+- Images handle responsive (srcset, sizes, or CSS containment)
+- Text readable without zooming on mobile (>= 16px body)
+- Navigation collapses appropriately (hamburger, bottom nav, etc.)
+- Forms usable on mobile (correct input types, no autoFocus on mobile)
+- No \`user-scalable=no\` or \`maximum-scale=1\` in viewport meta
+
+**7. Motion & Animation** (6 items)
+- Easing: ease-out for entering, ease-in for exiting, ease-in-out for moving
+- Duration: 50-700ms range (nothing slower unless page transition)
+- Purpose: every animation communicates something (state change, attention, spatial relationship)
+- \`prefers-reduced-motion\` respected (check: \`$B js "matchMedia('(prefers-reduced-motion: reduce)').matches"\`)
+- No \`transition: all\` — properties listed explicitly
+- Only \`transform\` and \`opacity\` animated (not layout properties like width, height, top, left)
+
+**8. Content & Microcopy** (8 items)
+- Empty states designed with warmth (message + action + illustration/icon)
+- Error messages specific: what happened + why + what to do next
+- Button labels specific ("Save API Key" not "Continue" or "Submit")
+- No placeholder/lorem ipsum text visible in production
+- Truncation handled (\`text-overflow: ellipsis\`, \`line-clamp\`, or \`break-words\`)
+- Active voice ("Install the CLI" not "The CLI will be installed")
+- Loading states end with \`…\` ("Saving…" not "Saving...")
+- Destructive actions have confirmation modal or undo window
+
+**9. AI Slop Detection** (10 anti-patterns — the blacklist)
+
+The test: would a human designer at a respected studio ever ship this?
+
+- Purple/violet/indigo gradient backgrounds or blue-to-purple color schemes
+- **The 3-column feature grid:** icon-in-colored-circle + bold title + 2-line description, repeated 3x symmetrically. THE most recognizable AI layout.
+- Icons in colored circles as section decoration (SaaS starter template look)
+- Centered everything (\`text-align: center\` on all headings, descriptions, cards)
+- Uniform bubbly border-radius on every element (same large radius on everything)
+- Decorative blobs, floating circles, wavy SVG dividers (if a section feels empty, it needs better content, not decoration)
+- Emoji as design elements (rockets in headings, emoji as bullet points)
+- Colored left-border on cards (\`border-left: 3px solid <accent>\`)
+- Generic hero copy ("Welcome to [X]", "Unlock the power of...", "Your all-in-one solution for...")
+- Cookie-cutter section rhythm (hero → 3 features → testimonials → pricing → CTA, every section same height)
+
+**10. Performance as Design** (6 items)
+- LCP < 2.0s (web apps), < 1.5s (informational sites)
+- CLS < 0.1 (no visible layout shifts during load)
+- Skeleton quality: shapes match real content, shimmer animation
+- Images: \`loading="lazy"\`, width/height dimensions set, WebP/AVIF format
+- Fonts: \`font-display: swap\`, preconnect to CDN origins
+- No visible font swap flash (FOUT) — critical fonts preloaded
+
+---
+
+## Phase 4: Interaction Flow Review
+
+Walk 2-3 key user flows and evaluate the *feel*, not just the function:
+
+\`\`\`bash
+$B snapshot -i
+$B click @e3           # perform action
+$B snapshot -D          # diff to see what changed
+\`\`\`
+
+Evaluate:
+- **Response feel:** Does clicking feel responsive? Any delays or missing loading states?
+- **Transition quality:** Are transitions intentional or generic/absent?
+- **Feedback clarity:** Did the action clearly succeed or fail? Is the feedback immediate?
+- **Form polish:** Focus states visible? Validation timing correct? Errors near the source?
+
+---
+
+## Phase 5: Cross-Page Consistency
+
+Compare screenshots and observations across pages for:
+- Navigation bar consistent across all pages?
+- Footer consistent?
+- Component reuse vs one-off designs (same button styled differently on different pages?)
+- Tone consistency (one page playful while another is corporate?)
+- Spacing rhythm carries across pages?
+
+---
+
+## Phase 6: Compile Report
+
+### Output Locations
+
+**Local:** \`.gstack/design-reports/design-audit-{domain}-{YYYY-MM-DD}.md\`
+
+**Project-scoped:**
+\`\`\`bash
+eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
+mkdir -p ~/.gstack/projects/$SLUG
+\`\`\`
+Write to: \`~/.gstack/projects/{slug}/{user}-{branch}-design-audit-{datetime}.md\`
+
+**Baseline:** Write \`design-baseline.json\` for regression mode:
+\`\`\`json
+{
+  "date": "YYYY-MM-DD",
+  "url": "<target>",
+  "designScore": "B",
+  "aiSlopScore": "C",
+  "categoryGrades": { "hierarchy": "A", "typography": "B", ... },
+  "findings": [{ "id": "FINDING-001", "title": "...", "impact": "high", "category": "typography" }]
+}
+\`\`\`
+
+### Scoring System
+
+**Dual headline scores:**
+- **Design Score: {A-F}** — weighted average of all 10 categories
+- **AI Slop Score: {A-F}** — standalone grade with pithy verdict
+
+**Per-category grades:**
+- **A:** Intentional, polished, delightful. Shows design thinking.
+- **B:** Solid fundamentals, minor inconsistencies. Looks professional.
+- **C:** Functional but generic. No major problems, no design point of view.
+- **D:** Noticeable problems. Feels unfinished or careless.
+- **F:** Actively hurting user experience. Needs significant rework.
+
+**Grade computation:** Each category starts at A. Each High-impact finding drops one letter grade. Each Medium-impact finding drops half a letter grade. Polish findings are noted but do not affect grade. Minimum is F.
+
+**Category weights for Design Score:**
+| Category | Weight |
+|----------|--------|
+| Visual Hierarchy | 15% |
+| Typography | 15% |
+| Spacing & Layout | 15% |
+| Color & Contrast | 10% |
+| Interaction States | 10% |
+| Responsive | 10% |
+| Content Quality | 10% |
+| AI Slop | 5% |
+| Motion | 5% |
+| Performance Feel | 5% |
+
+AI Slop is 5% of Design Score but also graded independently as a headline metric.
+
+### Regression Output
+
+When previous \`design-baseline.json\` exists or \`--regression\` flag is used:
+- Load baseline grades
+- Compare: per-category deltas, new findings, resolved findings
+- Append regression table to report
+
+---
+
+## Design Critique Format
+
+Use structured feedback, not opinions:
+- "I notice..." — observation (e.g., "I notice the primary CTA competes with the secondary action")
+- "I wonder..." — question (e.g., "I wonder if users will understand what 'Process' means here")
+- "What if..." — suggestion (e.g., "What if we moved search to a more prominent position?")
+- "I think... because..." — reasoned opinion (e.g., "I think the spacing between sections is too uniform because it doesn't create hierarchy")
+
+Tie everything to user goals and product objectives. Always suggest specific improvements alongside problems.
+
+---
+
+## Important Rules
+
+1. **Think like a designer, not a QA engineer.** You care whether things feel right, look intentional, and respect the user. You do NOT just care whether things "work."
+2. **Screenshots are evidence.** Every finding needs at least one screenshot. Use annotated screenshots (\`snapshot -a\`) to highlight elements.
+3. **Be specific and actionable.** "Change X to Y because Z" — not "the spacing feels off."
+4. **Never read source code.** Evaluate the rendered site, not the implementation. (Exception: offer to write DESIGN.md from extracted observations.)
+5. **AI Slop detection is your superpower.** Most developers can't evaluate whether their site looks AI-generated. You can. Be direct about it.
+6. **Quick wins matter.** Always include a "Quick Wins" section — the 3-5 highest-impact fixes that take <30 minutes each.
+7. **Use \`snapshot -C\` for tricky UIs.** Finds clickable divs that the accessibility tree misses.
+8. **Responsive is design, not just "not broken."** A stacked desktop layout on mobile is not responsive design — it's lazy. Evaluate whether the mobile layout makes *design* sense.
+9. **Document incrementally.** Write each finding to the report as you find it. Don't batch.
+10. **Depth over breadth.** 5-10 well-documented findings with screenshots and specific suggestions > 20 vague observations.
+11. **Show screenshots to the user.** After every \`$B screenshot\`, \`$B snapshot -a -o\`, or \`$B responsive\` command, use the Read tool on the output file(s) so the user can see them inline. For \`responsive\` (3 files), Read all three. This is critical — without it, screenshots are invisible to the user.`;
+}
+
+function generateReviewDashboard(): string {
+  return `## Review Readiness Dashboard
+
+After completing the review, read the review log and config to display the dashboard.
+
+\`\`\`bash
+eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
+cat ~/.gstack/projects/$SLUG/$BRANCH-reviews.jsonl 2>/dev/null || echo "NO_REVIEWS"
+echo "---CONFIG---"
+~/.claude/skills/gstack/bin/gstack-config get skip_eng_review 2>/dev/null || echo "false"
+\`\`\`
+
+Parse the output. Find the most recent entry for each skill (plan-ceo-review, plan-eng-review, plan-design-review). Ignore entries with timestamps older than 7 days. Display:
+
+\`\`\`
++====================================================================+
+|                    REVIEW READINESS DASHBOARD                       |
++====================================================================+
+| Review          | Runs | Last Run            | Status    | Required |
+|-----------------|------|---------------------|-----------|----------|
+| Eng Review      |  1   | 2026-03-16 15:00    | CLEAR     | YES      |
+| CEO Review      |  0   | —                   | —         | no       |
+| Design Review   |  0   | —                   | —         | no       |
++--------------------------------------------------------------------+
+| VERDICT: CLEARED — Eng Review passed                                |
++====================================================================+
+\`\`\`
+
+**Review tiers:**
+- **Eng Review (required by default):** The only review that gates shipping. Covers architecture, code quality, tests, performance. Can be disabled globally with \\\`gstack-config set skip_eng_review true\\\` (the "don't bother me" setting).
+- **CEO Review (optional):** Use your judgment. Recommend it for big product/business changes, new user-facing features, or scope decisions. Skip for bug fixes, refactors, infra, and cleanup.
+- **Design Review (optional):** Use your judgment. Recommend it for UI/UX changes. Skip for backend-only, infra, or prompt-only changes.
+
+**Verdict logic:**
+- **CLEARED**: Eng Review has >= 1 entry within 7 days with status "clean" (or \\\`skip_eng_review\\\` is \\\`true\\\`)
+- **NOT CLEARED**: Eng Review missing, stale (>7 days), or has open issues
+- CEO and Design reviews are shown for context but never block shipping
+- If \\\`skip_eng_review\\\` config is \\\`true\\\`, Eng Review shows "SKIPPED (global)" and verdict is CLEARED`;
+}
+
+function generateTestBootstrap(): string {
+  return `## Test Framework Bootstrap
+
+**Detect existing test framework and project runtime:**
+
+\`\`\`bash
+# Detect project runtime
+[ -f Gemfile ] && echo "RUNTIME:ruby"
+[ -f package.json ] && echo "RUNTIME:node"
+[ -f requirements.txt ] || [ -f pyproject.toml ] && echo "RUNTIME:python"
+[ -f go.mod ] && echo "RUNTIME:go"
+[ -f Cargo.toml ] && echo "RUNTIME:rust"
+[ -f composer.json ] && echo "RUNTIME:php"
+[ -f mix.exs ] && echo "RUNTIME:elixir"
+# Detect sub-frameworks
+[ -f Gemfile ] && grep -q "rails" Gemfile 2>/dev/null && echo "FRAMEWORK:rails"
+[ -f package.json ] && grep -q '"next"' package.json 2>/dev/null && echo "FRAMEWORK:nextjs"
+# Check for existing test infrastructure
+ls jest.config.* vitest.config.* playwright.config.* .rspec pytest.ini pyproject.toml phpunit.xml 2>/dev/null
+ls -d test/ tests/ spec/ __tests__/ cypress/ e2e/ 2>/dev/null
+# Check opt-out marker
+[ -f .gstack/no-test-bootstrap ] && echo "BOOTSTRAP_DECLINED"
+\`\`\`
+
+**If test framework detected** (config files or test directories found):
+Print "Test framework detected: {name} ({N} existing tests). Skipping bootstrap."
+Read 2-3 existing test files to learn conventions (naming, imports, assertion style, setup patterns).
+Store conventions as prose context for use in Phase 8e.5 or Step 3.4. **Skip the rest of bootstrap.**
+
+**If BOOTSTRAP_DECLINED** appears: Print "Test bootstrap previously declined — skipping." **Skip the rest of bootstrap.**
+
+**If NO runtime detected** (no config files found): Use AskUserQuestion:
+"I couldn't detect your project's language. What runtime are you using?"
+Options: A) Node.js/TypeScript B) Ruby/Rails C) Python D) Go E) Rust F) PHP G) Elixir H) This project doesn't need tests.
+If user picks H → write \`.gstack/no-test-bootstrap\` and continue without tests.
+
+**If runtime detected but no test framework — bootstrap:**
+
+### B2. Research best practices
+
+Use WebSearch to find current best practices for the detected runtime:
+- \`"[runtime] best test framework 2025 2026"\`
+- \`"[framework A] vs [framework B] comparison"\`
+
+If WebSearch is unavailable, use this built-in knowledge table:
+
+| Runtime | Primary recommendation | Alternative |
+|---------|----------------------|-------------|
+| Ruby/Rails | minitest + fixtures + capybara | rspec + factory_bot + shoulda-matchers |
+| Node.js | vitest + @testing-library | jest + @testing-library |
+| Next.js | vitest + @testing-library/react + playwright | jest + cypress |
+| Python | pytest + pytest-cov | unittest |
+| Go | stdlib testing + testify | stdlib only |
+| Rust | cargo test (built-in) + mockall | — |
+| PHP | phpunit + mockery | pest |
+| Elixir | ExUnit (built-in) + ex_machina | — |
+
+### B3. Framework selection
+
+Use AskUserQuestion:
+"I detected this is a [Runtime/Framework] project with no test framework. I researched current best practices. Here are the options:
+A) [Primary] — [rationale]. Includes: [packages]. Supports: unit, integration, smoke, e2e
+B) [Alternative] — [rationale]. Includes: [packages]
+C) Skip — don't set up testing right now
+RECOMMENDATION: Choose A because [reason based on project context]"
+
+If user picks C → write \`.gstack/no-test-bootstrap\`. Tell user: "If you change your mind later, delete \`.gstack/no-test-bootstrap\` and re-run." Continue without tests.
+
+If multiple runtimes detected (monorepo) → ask which runtime to set up first, with option to do both sequentially.
+
+### B4. Install and configure
+
+1. Install the chosen packages (npm/bun/gem/pip/etc.)
+2. Create minimal config file
+3. Create directory structure (test/, spec/, etc.)
+4. Create one example test matching the project's code to verify setup works
+
+If package installation fails → debug once. If still failing → revert with \`git checkout -- package.json package-lock.json\` (or equivalent for the runtime). Warn user and continue without tests.
+
+### B4.5. First real tests
+
+Generate 3-5 real tests for existing code:
+
+1. **Find recently changed files:** \`git log --since=30.days --name-only --format="" | sort | uniq -c | sort -rn | head -10\`
+2. **Prioritize by risk:** Error handlers > business logic with conditionals > API endpoints > pure functions
+3. **For each file:** Write one test that tests real behavior with meaningful assertions. Never \`expect(x).toBeDefined()\` — test what the code DOES.
+4. Run each test. Passes → keep. Fails → fix once. Still fails → delete silently.
+5. Generate at least 1 test, cap at 5.
+
+Never import secrets, API keys, or credentials in test files. Use environment variables or test fixtures.
+
+### B5. Verify
+
+\`\`\`bash
+# Run the full test suite to confirm everything works
+{detected test command}
+\`\`\`
+
+If tests fail → debug once. If still failing → revert all bootstrap changes and warn user.
+
+### B5.5. CI/CD pipeline
+
+\`\`\`bash
+# Check CI provider
+ls -d .github/ 2>/dev/null && echo "CI:github"
+ls .gitlab-ci.yml .circleci/ bitrise.yml 2>/dev/null
+\`\`\`
+
+If \`.github/\` exists (or no CI detected — default to GitHub Actions):
+Create \`.github/workflows/test.yml\` with:
+- \`runs-on: ubuntu-latest\`
+- Appropriate setup action for the runtime (setup-node, setup-ruby, setup-python, etc.)
+- The same test command verified in B5
+- Trigger: push + pull_request
+
+If non-GitHub CI detected → skip CI generation with note: "Detected {provider} — CI pipeline generation supports GitHub Actions only. Add test step to your existing pipeline manually."
+
+### B6. Create TESTING.md
+
+First check: If TESTING.md already exists → read it and update/append rather than overwriting. Never destroy existing content.
+
+Write TESTING.md with:
+- Philosophy: "100% test coverage is the key to great vibe coding. Tests let you move fast, trust your instincts, and ship with confidence — without them, vibe coding is just yolo coding. With tests, it's a superpower."
+- Framework name and version
+- How to run tests (the verified command from B5)
+- Test layers: Unit tests (what, where, when), Integration tests, Smoke tests, E2E tests
+- Conventions: file naming, assertion style, setup/teardown patterns
+
+### B7. Update CLAUDE.md
+
+First check: If CLAUDE.md already has a \`## Testing\` section → skip. Don't duplicate.
+
+Append a \`## Testing\` section:
+- Run command and test directory
+- Reference to TESTING.md
+- Test expectations:
+  - 100% test coverage is the goal — tests make vibe coding safe
+  - When writing new functions, write a corresponding test
+  - When fixing a bug, write a regression test
+  - When adding error handling, write a test that triggers the error
+  - When adding a conditional (if/else, switch), write tests for BOTH paths
+  - Never commit code that makes existing tests fail
+
+### B8. Commit
+
+\`\`\`bash
+git status --porcelain
+\`\`\`
+
+Only commit if there are changes. Stage all bootstrap files (config, test directory, TESTING.md, CLAUDE.md, .github/workflows/test.yml if created):
+\`git commit -m "chore: bootstrap test framework ({framework name})"\`
+
+---`;
 }
 
 function generateSerenaSetup(): string {
@@ -792,6 +1322,8 @@ const RESOLVERS: Record<string, () => string> = {
   QA_METHODOLOGY: generateQAMethodology,
   SERENA_SETUP: generateSerenaSetup,
   DESIGN_METHODOLOGY: generateDesignMethodology,
+  REVIEW_DASHBOARD: generateReviewDashboard,
+  TEST_BOOTSTRAP: generateTestBootstrap,
 };
 
 // ─── Template Processing ────────────────────────────────────
@@ -844,7 +1376,6 @@ function findTemplates(): string[] {
     path.join(ROOT, 'plan-ceo-review', 'SKILL.md.tmpl'),
     path.join(ROOT, 'plan-eng-review', 'SKILL.md.tmpl'),
     path.join(ROOT, 'retro', 'SKILL.md.tmpl'),
-
     path.join(ROOT, 'plan-design-review', 'SKILL.md.tmpl'),
     path.join(ROOT, 'qa-design-review', 'SKILL.md.tmpl'),
     path.join(ROOT, 'design-consultation', 'SKILL.md.tmpl'),
