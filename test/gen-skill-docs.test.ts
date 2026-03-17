@@ -133,23 +133,13 @@ describe('gen-skill-docs', () => {
     expect(browseTmpl).toContain('{{PREAMBLE}}');
   });
 
-  test('generated SKILL.md contains contributor mode check', () => {
-    const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
-    expect(content).toContain('Contributor Mode');
-    expect(content).toContain('gstack_contributor');
-    expect(content).toContain('contributor-logs');
-  });
+  // Governed fork strips contributor mode, session awareness, and branch detection
+  // from the preamble. Instead, verify the governed preamble content.
 
-  test('generated SKILL.md contains session awareness', () => {
+  test('generated SKILL.md contains AskUserQuestion format', () => {
     const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
-    expect(content).toContain('_SESSIONS');
+    expect(content).toContain('AskUserQuestion Format');
     expect(content).toContain('RECOMMENDATION');
-  });
-
-  test('generated SKILL.md contains branch detection', () => {
-    const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
-    expect(content).toContain('_BRANCH');
-    expect(content).toContain('git branch --show-current');
   });
 
   test('generated SKILL.md contains ELI16 simplification rules', () => {
