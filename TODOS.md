@@ -431,6 +431,3 @@ Shipped as `/design-consultation` on garrytan/design branch. Renamed from `/setu
 - Track cumulative API spend, warn if over threshold
 **Completed:** v0.3.6
 
-### Auto-upgrade mode + smart update check
-- Config CLI (`bin/gstack-config`), auto-upgrade via `~/.gstack/config.yaml`, 12h cache TTL, exponential snooze backoff (24h→48h→1wk), "never ask again" option, vendored copy sync on upgrade
-**Completed:** v0.3.8

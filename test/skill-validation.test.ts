@@ -509,7 +509,7 @@ describe('Serena integration', () => {
   const skillsWithoutSerena = [
     'browse/SKILL.md', 'qa-only/SKILL.md', 'retro/SKILL.md',
     'SKILL.md', 'setup-browser-cookies/SKILL.md',
-    'document-release/SKILL.md', 'gstack-upgrade/SKILL.md',
+    'document-release/SKILL.md',
   ];
 
   for (const skill of skillsWithSerena) {

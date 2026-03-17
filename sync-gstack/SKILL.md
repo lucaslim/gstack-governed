@@ -106,7 +106,33 @@ version — it will be adapted in Steps 3–4.
 
 After resolving each conflict: `git add <files> && git rebase --continue`
 
-**If the rebase is clean:** Continue — Steps 3–4 will verify and adapt any new content.
+**If the rebase is clean:** Continue — Steps 2b–4 will clean up and adapt any new content.
+
+### Step 2b — Remove upstream update infrastructure
+
+The fork does not use gstack-upgrade, gstack-update-check, or gstack-config.
+Upstream still ships them, so the rebase will reintroduce them. Delete them now:
+
+```bash
+rm -rf gstack-upgrade/
+rm -f bin/gstack-update-check bin/gstack-config
+rm -f browse/test/gstack-config.test.ts browse/test/gstack-update-check.test.ts
+```
+
+Also remove `gstack-upgrade` from the build/test registries if the rebase re-added it:
+
+1. `scripts/gen-skill-docs.ts` — remove the `gstack-upgrade` entry from `findTemplates()`
+2. `scripts/skill-check.ts` — remove `'gstack-upgrade/SKILL.md'` from `SKILL_FILES`
+3. `test/gen-skill-docs.test.ts` — remove `{ dir: 'gstack-upgrade', ... }` from `ALL_SKILLS`
+4. `test/skill-validation.test.ts` — remove `'gstack-upgrade/SKILL.md'` from the skills array
+5. `test/skill-e2e.test.ts` — remove any `test.todo()` for gstack-upgrade
+
+**Verification:**
+```bash
+grep -rn 'gstack-upgrade\|gstack-update-check\|gstack-config' scripts/ test/ bin/ --include='*.ts' --include='*.sh'
+```
+
+If any matches remain, remove them. CHANGELOG.md references are historical — leave those.
 
 ### Step 3 — Verify generator (preamble trim)
 
@@ -250,7 +276,6 @@ Scan every `.tmpl` file not already handled above:
 ```bash
 grep -rn 'ActiveRecord\|bin/test-lane\|npm run test\|Rails\|Models/Controllers\|Controllers & views\|Models & services\|rescue\|migration\|greptile\|greptile-triage\|greptile-history' \
   document-release/SKILL.md.tmpl \
-  gstack-upgrade/SKILL.md.tmpl \
   setup-browser-cookies/SKILL.md.tmpl \
   SKILL.md.tmpl \
   browse/SKILL.md.tmpl
@@ -377,7 +402,7 @@ Synced with upstream garrytan/gstack and applied governed modifications:
 - qa + qa-only: removed Rails subsection, .gstack/ → .local-context/
 - All skills: stripped Greptile integration (review comments, triage, history, reply templates)
 
-**Stack-agnostic (passed through):** document-release, gstack-upgrade, setup-browser-cookies
+**Stack-agnostic (passed through):** document-release, setup-browser-cookies
 
 **Regenerated:** All SKILL.md files via `bun run gen:skill-docs`
 
@@ -433,7 +458,6 @@ All skills and their sync treatment:
 | plan-design-review | plan-design-review/SKILL.md.tmpl | .gstack/ → .local-context/; strip Greptile; verify clean |
 | qa-design-review | qa-design-review/SKILL.md.tmpl | .gstack/ → .local-context/; strip Greptile; verify clean |
 | document-release | document-release/SKILL.md.tmpl | Verify clean, then pass through |
-| gstack-upgrade | gstack-upgrade/SKILL.md.tmpl | Verify clean, then pass through |
 | setup-browser-cookies | setup-browser-cookies/SKILL.md.tmpl | Verify clean, then pass through |
 | sync-gstack | sync-gstack/SKILL.md.tmpl | Preamble via generator; filesystem paths use gstack not gstack-governed |
 | (any new upstream skill) | (detect in 4h) | Verify clean, adapt if needed |
