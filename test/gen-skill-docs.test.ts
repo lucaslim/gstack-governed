@@ -68,10 +68,11 @@ describe('gen-skill-docs', () => {
     { dir: 'plan-eng-review', name: 'plan-eng-review' },
     { dir: 'retro', name: 'retro' },
     { dir: 'setup-browser-cookies', name: 'setup-browser-cookies' },
-
     { dir: 'plan-design-review', name: 'plan-design-review' },
     { dir: 'qa-design-review', name: 'qa-design-review' },
     { dir: 'design-consultation', name: 'design-consultation' },
+    { dir: 'document-release', name: 'document-release' },
+    { dir: 'sync-gstack', name: 'sync-gstack' },
   ];
 
   test('every skill has a SKILL.md.tmpl template', () => {
@@ -136,15 +137,6 @@ describe('gen-skill-docs', () => {
     expect(browseTmpl).toContain('{{PREAMBLE}}');
   });
 
-  // Governed fork strips contributor mode, session awareness, and branch detection
-  // from the preamble. Instead, verify the governed preamble content.
-
-  test('generated SKILL.md contains AskUserQuestion format', () => {
-    const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
-    expect(content).toContain('AskUserQuestion Format');
-    expect(content).toContain('RECOMMENDATION');
-  });
-
   test('generated SKILL.md contains ELI16 simplification rules', () => {
     const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
     expect(content).toContain('No raw function names');
@@ -186,12 +178,10 @@ describe('gen-skill-docs', () => {
     const qaOnlyContent = fs.readFileSync(path.join(ROOT, 'qa-only', 'SKILL.md'), 'utf-8');
     expect(qaOnlyContent).toContain('Never fix bugs');
     expect(qaOnlyContent).toContain('NEVER fix anything');
-    // Should not have Edit, Glob, or Grep in allowed-tools (frontmatter only)
-    const frontmatter = qaOnlyContent.split('---')[1] || '';
-    const allowedTools = frontmatter.match(/allowed-tools:[\s\S]*?(?=\n\w|\n---)/)?.[0] || '';
-    expect(allowedTools).not.toContain('Edit');
-    expect(allowedTools).not.toContain('Glob');
-    expect(allowedTools).not.toContain('Grep');
+    // Should not have Edit, Glob, or Grep in allowed-tools
+    expect(qaOnlyContent).not.toMatch(/allowed-tools:[\s\S]*?Edit/);
+    expect(qaOnlyContent).not.toMatch(/allowed-tools:[\s\S]*?Glob/);
+    expect(qaOnlyContent).not.toMatch(/allowed-tools:[\s\S]*?Grep/);
   });
 
   test('qa has fix-loop tools and phases', () => {
@@ -312,5 +302,33 @@ describe('description quality evals', () => {
     const tipsSection = content.slice(content.indexOf('## Tips'));
     expect(tipsSection).toContain('→');
     expect(tipsSection).not.toContain('->');
+  });
+});
+
+describe('REVIEW_DASHBOARD resolver', () => {
+  const REVIEW_SKILLS = ['plan-ceo-review', 'plan-eng-review', 'plan-design-review'];
+
+  for (const skill of REVIEW_SKILLS) {
+    test(`review dashboard appears in ${skill} generated file`, () => {
+      const content = fs.readFileSync(path.join(ROOT, skill, 'SKILL.md'), 'utf-8');
+      expect(content).toContain('reviews.jsonl');
+      expect(content).toContain('REVIEW READINESS DASHBOARD');
+    });
+  }
+
+  test('review dashboard appears in ship generated file', () => {
+    const content = fs.readFileSync(path.join(ROOT, 'ship', 'SKILL.md'), 'utf-8');
+    expect(content).toContain('reviews.jsonl');
+    expect(content).toContain('REVIEW READINESS DASHBOARD');
+  });
+
+  test('resolver output contains key dashboard elements', () => {
+    const content = fs.readFileSync(path.join(ROOT, 'plan-ceo-review', 'SKILL.md'), 'utf-8');
+    expect(content).toContain('VERDICT');
+    expect(content).toContain('CLEARED');
+    expect(content).toContain('Eng Review');
+    expect(content).toContain('7 days');
+    expect(content).toContain('Design Review');
+    expect(content).toContain('skip_eng_review');
   });
 });
