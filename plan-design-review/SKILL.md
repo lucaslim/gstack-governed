@@ -1,6 +1,7 @@
 ---
 name: plan-design-review
 version: 1.0.0
+model: opus
 description: |
   Designer's eye review of a live site. Finds visual inconsistency, spacing issues,
   hierarchy problems, interaction feel, AI slop patterns, typography issues, missed

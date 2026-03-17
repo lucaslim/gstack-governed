@@ -1,6 +1,7 @@
 ---
 name: design-consultation
 version: 1.0.0
+model: opus
 description: |
   Design consultation: understands your product, researches competitors, proposes a
   complete design system (aesthetic, typography, color, layout, spacing, motion), and

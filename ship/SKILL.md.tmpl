@@ -1,6 +1,7 @@
 ---
 name: ship
 version: 1.0.0
+model: sonnet
 description: |
   Ship workflow: detect + merge base branch, run tests, review diff, commit, push, create PR.
 allowed-tools:

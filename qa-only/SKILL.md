@@ -1,6 +1,7 @@
 ---
 name: qa-only
 version: 1.0.0
+model: sonnet
 description: |
   Report-only QA testing. Systematically tests a web application and produces a
   structured report with health score, screenshots, and repro steps — but never

@@ -1,6 +1,7 @@
 ---
 name: gstack
 version: 1.1.0
+model: sonnet
 description: |
   Fast headless browser for QA testing and site dogfooding. Navigate any URL, interact with
   elements, verify page state, diff before/after actions, take annotated screenshots, check
