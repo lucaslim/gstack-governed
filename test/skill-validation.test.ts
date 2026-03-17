@@ -168,51 +168,8 @@ describe('Generated SKILL.md freshness', () => {
 
 // --- Update check preamble validation ---
 
-describe('Update check preamble', () => {
-  const skillsWithUpdateCheck = [
-    'SKILL.md', 'browse/SKILL.md', 'qa/SKILL.md',
-    'qa-only/SKILL.md',
-    'setup-browser-cookies/SKILL.md',
-    'ship/SKILL.md', 'review/SKILL.md',
-    'plan-ceo-review/SKILL.md', 'plan-eng-review/SKILL.md',
-    'retro/SKILL.md',
-    'document-release/SKILL.md',
-  ];
-
-  for (const skill of skillsWithUpdateCheck) {
-    test(`${skill} update check line ends with || true`, () => {
-      const content = fs.readFileSync(path.join(ROOT, skill), 'utf-8');
-      // The second line of the bash block must end with || true
-      // to avoid exit code 1 when _UPD is empty (up to date)
-      const match = content.match(/\[ -n "\$_UPD" \].*$/m);
-      expect(match).not.toBeNull();
-      expect(match![0]).toContain('|| true');
-    });
-  }
-
-  test('all skills with update check are generated from .tmpl', () => {
-    for (const skill of skillsWithUpdateCheck) {
-      const tmplPath = path.join(ROOT, skill + '.tmpl');
-      expect(fs.existsSync(tmplPath)).toBe(true);
-    }
-  });
-
-  test('update check bash block exits 0 when up to date', () => {
-    // Simulate the exact preamble command from SKILL.md
-    const result = Bun.spawnSync(['bash', '-c',
-      '_UPD=$(echo "" || true); [ -n "$_UPD" ] && echo "$_UPD" || true'
-    ], { stdout: 'pipe', stderr: 'pipe' });
-    expect(result.exitCode).toBe(0);
-  });
-
-  test('update check bash block exits 0 when upgrade available', () => {
-    const result = Bun.spawnSync(['bash', '-c',
-      '_UPD=$(echo "UPGRADE_AVAILABLE 0.3.3 0.4.0" || true); [ -n "$_UPD" ] && echo "$_UPD" || true'
-    ], { stdout: 'pipe', stderr: 'pipe' });
-    expect(result.exitCode).toBe(0);
-    expect(result.stdout.toString().trim()).toBe('UPGRADE_AVAILABLE 0.3.3 0.4.0');
-  });
-});
+// Update check preamble tests removed — governed fork strips _UPD/update check logic.
+// The governed preamble contains only the AskUserQuestion format block.
 
 // --- Part 7: QA skill structure validation (A2) ---
 
@@ -295,7 +252,7 @@ describe('QA skill structure validation', () => {
     expect(qaContent).toContain('qa-report-');
     expect(qaContent).toContain('baseline.json');
     expect(qaContent).toContain('screenshots/');
-    expect(qaContent).toContain('.gstack/qa-reports/');
+    expect(qaContent).toContain('.local-context/qa-reports/');
   });
 });
 
@@ -371,17 +328,16 @@ describe('TODOS-format.md reference consistency', () => {
   });
 
   test('skills that write TODOs reference TODOS-format.md', () => {
-    const shipContent = fs.readFileSync(path.join(ROOT, 'ship', 'SKILL.md'), 'utf-8');
+    // Governed fork stripped TODOS steps from ship, so only check plan skills
     const ceoPlanContent = fs.readFileSync(path.join(ROOT, 'plan-ceo-review', 'SKILL.md'), 'utf-8');
     const engPlanContent = fs.readFileSync(path.join(ROOT, 'plan-eng-review', 'SKILL.md'), 'utf-8');
 
-    expect(shipContent).toContain('TODOS-format.md');
     expect(ceoPlanContent).toContain('TODOS-format.md');
     expect(engPlanContent).toContain('TODOS-format.md');
   });
 });
 
-// --- v0.4.1 feature coverage: RECOMMENDATION format, session awareness, enum completeness ---
+// --- v0.4.1 feature coverage: RECOMMENDATION format, AskUserQuestion preamble ---
 
 describe('v0.4.1 preamble features', () => {
   const skillsWithPreamble = [
@@ -401,51 +357,12 @@ describe('v0.4.1 preamble features', () => {
       expect(content).toContain('AskUserQuestion');
     });
 
-    test(`${skill} contains session awareness`, () => {
-      const content = fs.readFileSync(path.join(ROOT, skill), 'utf-8');
-      expect(content).toContain('_SESSIONS');
-      expect(content).toContain('RECOMMENDATION');
-    });
+    // Session awareness tests removed — governed fork strips _SESSIONS from preamble
   }
 });
 
-// --- Contributor mode preamble structure validation ---
-
-describe('Contributor mode preamble structure', () => {
-  const skillsWithPreamble = [
-    'SKILL.md', 'browse/SKILL.md', 'qa/SKILL.md',
-    'qa-only/SKILL.md',
-    'setup-browser-cookies/SKILL.md',
-    'ship/SKILL.md', 'review/SKILL.md',
-    'plan-ceo-review/SKILL.md', 'plan-eng-review/SKILL.md',
-    'retro/SKILL.md',
-  ];
-
-  for (const skill of skillsWithPreamble) {
-    test(`${skill} has 0-10 rating in contributor mode`, () => {
-      const content = fs.readFileSync(path.join(ROOT, skill), 'utf-8');
-      expect(content).toContain('0 to 10');
-      expect(content).toContain('My rating');
-    });
-
-    test(`${skill} has calibration example`, () => {
-      const content = fs.readFileSync(path.join(ROOT, skill), 'utf-8');
-      expect(content).toContain('Calibration');
-      expect(content).toContain('the bar');
-    });
-
-    test(`${skill} has "what would make this a 10" field`, () => {
-      const content = fs.readFileSync(path.join(ROOT, skill), 'utf-8');
-      expect(content).toContain('What would make this a 10');
-    });
-
-    test(`${skill} uses periodic reflection (not per-command)`, () => {
-      const content = fs.readFileSync(path.join(ROOT, skill), 'utf-8');
-      expect(content).toContain('workflow step');
-      expect(content).not.toContain('After you use gstack-provided CLIs');
-    });
-  }
-});
+// Contributor mode preamble structure tests removed — governed fork strips
+// contributor mode from the preamble entirely.
 
 describe('Enum & Value Completeness in review checklist', () => {
   const checklist = fs.readFileSync(path.join(ROOT, 'review', 'checklist.md'), 'utf-8');
