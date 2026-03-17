@@ -678,18 +678,14 @@ Run `cd ~/.claude/skills/gstack && ./setup` (or `cd .claude/skills/gstack && ./s
 Run `cd ~/.claude/skills/gstack && bun install && bun run build`. This compiles the browser binary. Requires Bun v1.0+.
 
 **Project copy is stale?**
-Run `/gstack-upgrade` — it updates both the global install and any vendored project copy automatically.
+Run `/sync-gstack` to pull the latest changes from upstream while preserving React/TS adaptations.
 
 **`bun` not installed?**
 Install it: `curl -fsSL https://bun.sh/install | bash`
 
 ## Upgrading
 
-Run `/gstack-upgrade` in Claude Code. It detects your install type (global or vendored), upgrades, syncs any project copies, and shows what's new.
-
-Or set `auto_upgrade: true` in `~/.gstack/config.yaml` to upgrade automatically whenever a new version is available.
-
-**This fork:** Use `/sync-gstack` to pull the latest changes from upstream while preserving the React/TS adaptations and trimmed preamble.
+Run `/sync-gstack` in Claude Code to pull the latest changes from upstream while preserving the React/TS adaptations and trimmed preamble.
 
 ## Uninstalling
 

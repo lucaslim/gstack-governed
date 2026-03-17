@@ -26,7 +26,6 @@ gstack/
 ├── plan-ceo-review/      # /plan-ceo-review skill
 ├── sync-gstack/          # /sync-gstack skill (fork-only, not in upstream)
 ├── document-release/     # /document-release skill
-├── gstack-upgrade/       # /gstack-upgrade skill
 ├── setup-browser-cookies/# Cookie import skill
 ├── SKILL.md.tmpl         # Root skill template
 └── SKILL.md              # Generated from template (don't edit)

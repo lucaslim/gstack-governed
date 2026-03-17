@@ -68,7 +68,7 @@ describe('gen-skill-docs', () => {
     { dir: 'plan-eng-review', name: 'plan-eng-review' },
     { dir: 'retro', name: 'retro' },
     { dir: 'setup-browser-cookies', name: 'setup-browser-cookies' },
-    { dir: 'gstack-upgrade', name: 'gstack-upgrade' },
+
     { dir: 'plan-design-review', name: 'plan-design-review' },
     { dir: 'qa-design-review', name: 'qa-design-review' },
     { dir: 'design-consultation', name: 'design-consultation' },
