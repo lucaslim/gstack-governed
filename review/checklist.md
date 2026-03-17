@@ -134,7 +134,7 @@ the agent auto-fixes a finding or asks the user.
 ```
 AUTO-FIX (agent fixes without asking):     ASK (needs human judgment):
 ├─ Dead code / unused variables            ├─ Security (auth, XSS, injection)
-├─ N+1 queries (missing .includes())      ├─ Race conditions
+├─ N+1 queries (missing eager loading)      ├─ Race conditions
 ├─ Stale comments contradicting code       ├─ Design decisions
 ├─ Magic numbers → named constants         ├─ Large fixes (>20 lines)
 ├─ Missing LLM output validation           ├─ Enum completeness

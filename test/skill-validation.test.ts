@@ -199,6 +199,9 @@ describe('Generated SKILL.md freshness', () => {
 // Update check preamble tests removed — governed fork strips _UPD/update check logic.
 // The governed preamble contains only the AskUserQuestion format block.
 
+// --- Part 7: Cross-skill path consistency (A1) ---
+// Cross-skill path consistency tests removed — governed fork does not have Greptile integration or REMOTE_SLUG.
+
 // --- Part 7: QA skill structure validation (A2) ---
 
 describe('QA skill structure validation', () => {
@@ -283,6 +286,9 @@ describe('QA skill structure validation', () => {
     expect(qaContent).toContain('.local-context/qa-reports/');
   });
 });
+
+// --- Part 7: Greptile history format consistency (A3) ---
+// Greptile history format tests removed — governed fork does not have Greptile integration.
 
 // --- Hardcoded branch name detection in templates ---
 
@@ -390,6 +396,7 @@ describe('v0.4.1 preamble features', () => {
 
     // Session awareness tests removed — governed fork strips _SESSIONS from preamble
   }
+  // Session awareness tests removed: governed fork does not have session tracking
 });
 
 // Contributor mode preamble structure tests removed — governed fork strips

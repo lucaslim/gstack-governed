@@ -2,7 +2,7 @@
 name: ship
 version: 1.0.0
 description: |
-  Ship workflow: detect + merge base branch, run tests, review diff, bump VERSION, update CHANGELOG, commit, push, create PR.
+  Ship workflow: detect + merge base branch, run tests, review diff, commit, push, create PR.
 allowed-tools:
   - Bash
   - Read
@@ -119,7 +119,7 @@ Review the diff for structural issues that tests don't catch.
 
    If no issues found: `Pre-Landing Review: No issues found.`
 
-Save the review output — it goes into the PR body in Step 8.
+Save the review output — it goes into the PR body in Step 6.
 
 ---
 
@@ -160,7 +160,7 @@ EOF
 
 ---
 
-## Step 7: Push
+## Step 5: Push
 
 Push to the remote with upstream tracking:
 
@@ -170,7 +170,7 @@ git push -u origin <branch-name>
 
 ---
 
-## Step 8: Create PR
+## Step 6: Create PR
 
 Create a pull request using `gh`:
 

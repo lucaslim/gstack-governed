@@ -101,11 +101,11 @@ Example format:
 ```
 I auto-fixed 5 issues. 2 need your input:
 
-1. [CRITICAL] app/models/post.rb:42 — Race condition in status transition
+1. [CRITICAL] src/components/PostEditor.tsx:42 — Race condition in status transition
    Fix: Add `WHERE status = 'draft'` to the UPDATE
    → A) Fix  B) Skip
 
-2. [INFORMATIONAL] app/services/generator.rb:88 — LLM output not type-checked before DB write
+2. [INFORMATIONAL] src/services/generator.ts:88 — LLM output not type-checked before DB write
    Fix: Add JSON schema validation
    → A) Fix  B) Skip
 
@@ -154,3 +154,4 @@ If no documentation files exist, skip this step silently.
 - **Fix-first, not read-only.** AUTO-FIX items are applied directly. ASK items are only applied after user approval. Never commit, push, or create PRs — that's /ship's job.
 - **Be terse.** One line problem, one line fix. No preamble.
 - **Only flag real problems.** Skip anything that's fine.
+- **Every finding needs evidence.** Cite file:line and explain why it's a problem. Never post vague findings.
