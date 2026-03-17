@@ -57,6 +57,34 @@ describe('SKILL.md command validation', () => {
     const result = validateSkill(qaOnlySkill);
     expect(result.snapshotFlagErrors).toHaveLength(0);
   });
+
+  test('all $B commands in plan-design-review/SKILL.md are valid browse commands', () => {
+    const skill = path.join(ROOT, 'plan-design-review', 'SKILL.md');
+    if (!fs.existsSync(skill)) return;
+    const result = validateSkill(skill);
+    expect(result.invalid).toHaveLength(0);
+  });
+
+  test('all snapshot flags in plan-design-review/SKILL.md are valid', () => {
+    const skill = path.join(ROOT, 'plan-design-review', 'SKILL.md');
+    if (!fs.existsSync(skill)) return;
+    const result = validateSkill(skill);
+    expect(result.snapshotFlagErrors).toHaveLength(0);
+  });
+
+  test('all $B commands in qa-design-review/SKILL.md are valid browse commands', () => {
+    const skill = path.join(ROOT, 'qa-design-review', 'SKILL.md');
+    if (!fs.existsSync(skill)) return;
+    const result = validateSkill(skill);
+    expect(result.invalid).toHaveLength(0);
+  });
+
+  test('all snapshot flags in qa-design-review/SKILL.md are valid', () => {
+    const skill = path.join(ROOT, 'qa-design-review', 'SKILL.md');
+    if (!fs.existsSync(skill)) return;
+    const result = validateSkill(skill);
+    expect(result.snapshotFlagErrors).toHaveLength(0);
+  });
 });
 
 describe('Command registry consistency', () => {
@@ -171,6 +199,9 @@ describe('Generated SKILL.md freshness', () => {
 // Update check preamble tests removed — governed fork strips _UPD/update check logic.
 // The governed preamble contains only the AskUserQuestion format block.
 
+// --- Part 7: Cross-skill path consistency (A1) ---
+// Cross-skill path consistency tests removed — governed fork does not have Greptile integration or REMOTE_SLUG.
+
 // --- Part 7: QA skill structure validation (A2) ---
 
 describe('QA skill structure validation', () => {
@@ -255,6 +286,9 @@ describe('QA skill structure validation', () => {
     expect(qaContent).toContain('.local-context/qa-reports/');
   });
 });
+
+// --- Part 7: Greptile history format consistency (A3) ---
+// Greptile history format tests removed — governed fork does not have Greptile integration.
 
 // --- Hardcoded branch name detection in templates ---
 
@@ -347,6 +381,9 @@ describe('v0.4.1 preamble features', () => {
     'ship/SKILL.md', 'review/SKILL.md',
     'plan-ceo-review/SKILL.md', 'plan-eng-review/SKILL.md',
     'retro/SKILL.md',
+    'plan-design-review/SKILL.md',
+    'qa-design-review/SKILL.md',
+    'design-consultation/SKILL.md',
     'document-release/SKILL.md',
   ];
 
@@ -359,6 +396,7 @@ describe('v0.4.1 preamble features', () => {
 
     // Session awareness tests removed — governed fork strips _SESSIONS from preamble
   }
+  // Session awareness tests removed: governed fork does not have session tracking
 });
 
 // Contributor mode preamble structure tests removed — governed fork strips
@@ -386,14 +424,27 @@ describe('Enum & Value Completeness in review checklist', () => {
     expect(checklist).toContain('allowlist');
   });
 
-  test('Enum & Value Completeness is in the gate classification as CRITICAL', () => {
-    const gateSection = checklist.slice(checklist.indexOf('## Gate Classification'));
+  test('Enum & Value Completeness is in the severity classification as CRITICAL', () => {
+    const gateSection = checklist.slice(checklist.indexOf('## Severity Classification'));
     // The ASCII art has CRITICAL on the left and INFORMATIONAL on the right
     // Enum & Value Completeness should appear on a line with the CRITICAL tree (├─ or └─)
     const enumLine = gateSection.split('\n').find(l => l.includes('Enum & Value Completeness'));
     expect(enumLine).toBeDefined();
     // It's on the left (CRITICAL) side — starts with ├─ or └─
     expect(enumLine!.trimStart().startsWith('├─') || enumLine!.trimStart().startsWith('└─')).toBe(true);
+  });
+
+  test('Fix-First Heuristic exists in checklist and is referenced by review + ship', () => {
+    expect(checklist).toContain('## Fix-First Heuristic');
+    expect(checklist).toContain('AUTO-FIX');
+    expect(checklist).toContain('ASK');
+
+    const reviewSkill = fs.readFileSync(path.join(ROOT, 'review/SKILL.md'), 'utf-8');
+    const shipSkill = fs.readFileSync(path.join(ROOT, 'ship/SKILL.md'), 'utf-8');
+    expect(reviewSkill).toContain('AUTO-FIX');
+    expect(reviewSkill).toContain('[AUTO-FIXED]');
+    expect(shipSkill).toContain('AUTO-FIX');
+    expect(shipSkill).toContain('[AUTO-FIXED]');
   });
 });
 
@@ -452,6 +503,8 @@ describe('Serena integration', () => {
   const skillsWithSerena = [
     'review/SKILL.md', 'ship/SKILL.md', 'qa/SKILL.md',
     'plan-ceo-review/SKILL.md', 'plan-eng-review/SKILL.md',
+    'design-consultation/SKILL.md', 'plan-design-review/SKILL.md',
+    'qa-design-review/SKILL.md',
   ];
   const skillsWithoutSerena = [
     'browse/SKILL.md', 'qa-only/SKILL.md', 'retro/SKILL.md',

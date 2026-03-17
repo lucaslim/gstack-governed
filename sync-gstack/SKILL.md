@@ -50,9 +50,14 @@ generator script.
 
 ## Prerequisites
 
+Detect the gstack repo root (works in both global installs and Conductor worktrees):
+```bash
+GSTACK_ROOT=$(git rev-parse --show-toplevel)
+echo "GSTACK_ROOT=$GSTACK_ROOT"
+```
+
 The fork must have an `upstream` remote pointing to `garrytan/gstack`:
 ```bash
-cd ~/.claude/skills/gstack
 git remote -v  # should show upstream → garrytan/gstack
 ```
 
@@ -63,59 +68,61 @@ If missing: `git remote add upstream https://github.com/garrytan/gstack.git`
 ### Step 1 — Fetch upstream + assess what changed
 
 ```bash
-cd ~/.claude/skills/gstack
 git fetch upstream
+git fetch origin
 ```
 
-Show what is new upstream:
+Show what is new upstream vs the fork:
 ```bash
-git log HEAD..upstream/main --oneline
+git log origin/main..upstream/main --oneline
 ```
 
 Read the CHANGELOG diff:
 ```bash
-git diff HEAD..upstream/main -- CHANGELOG.md
+git diff origin/main..upstream/main -- CHANGELOG.md
 ```
 
 Print a summary of what is new upstream: new skills, changed templates, generator changes,
 new commands, version bumps. This summary goes into the PR body later.
 
-### Step 2 — Create sync branch from upstream
+### Step 2 — Create sync branch from origin/main and rebase upstream
 
-Create a branch based on upstream/main. Use the current date for the branch name.
-
-```bash
-git checkout -b sync-upstream-$(date +%Y%m%d) upstream/main
-```
-
-At this point the working tree matches upstream exactly — no governed modifications yet.
-
-### Step 2.5 — Restore fork-only files
-
-Upstream may have deleted files that only exist in the governed fork. Restore them:
+Create a branch based on `origin/main` (the fork), then rebase onto `upstream/main`.
+This replays the fork's commits on top of upstream, producing a linear history and
+avoiding unnecessary merge conflicts when the PR lands.
 
 ```bash
-git checkout origin/main -- sync-gstack/ .serena/ .gitignore
+git checkout -b sync-upstream-$(date +%Y%m%d) origin/main
+git rebase upstream/main
 ```
 
-This preserves fork-only files: the sync-gstack skill, Serena project config + memories,
-and the .gitignore (which has the `!.serena/` override).
+**If there are rebase conflicts:** Resolve them, preferring the fork's version for:
+- Generator functions that the fork has already adapted (e.g. `generatePreamble()`)
+- Template sections the fork has already adapted (React/TS vocab, Greptile removal)
+- Fork-only files (sync-gstack/, .serena/, .gitignore)
 
-### Step 3 — Modify the generator (preamble trim)
+For genuinely new upstream content (new skills, new template sections), accept upstream's
+version — it will be adapted in Steps 3–4.
 
-Use Serena's symbolic tools to explore and edit the generator efficiently:
+After resolving each conflict: `git add <files> && git rebase --continue`
+
+**If the rebase is clean:** Continue — Steps 3–4 will verify and adapt any new content.
+
+### Step 3 — Verify generator (preamble trim)
+
+Since the branch started from `origin/main`, the generator already has the fork's
+adaptations. This step verifies the rebase didn't reintroduce upstream content and
+fixes it if it did.
+
+Use Serena's symbolic tools to inspect the generator efficiently:
 - `get_symbols_overview` on `scripts/gen-skill-docs.ts` to see all functions
 - `find_symbol` with `include_body=true` to read specific function bodies
-- `replace_symbol_body` to replace function implementations cleanly
+- `replace_symbol_body` to replace function implementations if needed
 
 The generator is `scripts/gen-skill-docs.ts`. The `generatePreamble()` function controls
 what the `PREAMBLE` placeholder resolves to in every template.
 
-Upstream's `generatePreamble()` likely contains update check logic (`_UPD=` bash blocks),
-session tracking, and contributor mode sections. The governed fork strips all of that,
-keeping only the AskUserQuestion format block.
-
-**Replace the entire body of `generatePreamble()`** so it returns only this:
+**Verify `generatePreamble()` returns only this** (fix if the merge reintroduced upstream content):
 
 ```
 ## AskUserQuestion Format
@@ -149,13 +156,15 @@ grep -n '_UPD=\|UPGRADE_AVAILABLE\|Contributor Mode\|session_id\|### Rails' scri
 If matches are found inside `generatePreamble()` or `generateQAMethodology()`, the trim is
 incomplete.
 
-### Step 4 — Apply React/TS template adaptations
+### Step 4 — Verify and fix React/TS template adaptations
 
-Edit `.tmpl` files (never generated `.md` files). For each skill below, apply the specified
-changes. Use the Edit tool for precise replacements.
+Since the branch started from `origin/main`, most adaptations are already in place.
+This step verifies the rebase didn't reintroduce upstream content (Rails vocab, Greptile,
+VERSION/CHANGELOG steps, etc.) and adapts any genuinely NEW upstream content.
 
-Use conditional language: check whether upstream re-introduced content before removing it.
-If a section is already absent, skip that sub-step.
+Edit `.tmpl` files (never generated `.md` files). For each skill below, check whether
+the merge reintroduced content and fix if needed. If a section is already correct
+(fork adaptation preserved), skip that sub-step.
 
 ---
 
@@ -398,10 +407,12 @@ Print:
 - Summary of upstream changes (from CHANGELOG diff in Step 1)
 - Which templates were modified vs. passed through
 - Link to PR
-- Reminder: after merging, deploy with:
+- Reminder: after merging, deploy to the active skill install:
   ```
-  cd ~/.claude/skills/gstack && git checkout main && git pull && ./setup
+  cd <GSTACK_ROOT> && git checkout main && git pull && ./setup
   ```
+  Where `<GSTACK_ROOT>` is whichever directory hosts gstack (e.g. `~/.claude/skills/gstack`
+  for global installs, or the Conductor worktree path).
 
 ## Skill Coverage Reference
 

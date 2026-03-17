@@ -137,6 +137,14 @@ Evaluate:
 
 **STOP.** For each issue found in this section, call AskUserQuestion individually. One issue per call. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one AskUserQuestion. Only proceed to the next section after ALL issues in this section are resolved.
 
+### 5. API / Backend Dependencies
+When a plan requires new API queries or mutations that don't yet exist, include a **"Request for BE team"** section:
+* **Ideal query/mutation shape:** Describe the data the frontend needs, the ideal response structure, and any filtering/pagination requirements.
+* **Missing API capabilities:** List endpoints or fields that don't exist yet and would need to be built.
+* **N+1 risks:** Flag any data fetching patterns that could cause N+1 query problems on the backend side.
+
+This section helps the frontend and backend teams align before implementation begins.
+
 ## CRITICAL RULE — How to ask questions
 Follow the AskUserQuestion Format section above. Additional rules for plan reviews:
 * **One issue = one AskUserQuestion call.** Never combine multiple issues into one question.

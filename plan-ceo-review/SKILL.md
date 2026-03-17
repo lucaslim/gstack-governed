@@ -232,7 +232,7 @@ Required ASCII diagram: full system architecture showing new components and thei
 This is the section that catches silent failures. It is not optional.
 For every new method, service, or codepath that can fail, fill in this table:
 ```
-  METHOD/CODEPATH          | WHAT CAN GO WRONG           | EXCEPTION CLASS
+  METHOD/CODEPATH          | WHAT CAN GO WRONG           | ERROR TYPE
   -------------------------|-----------------------------|-----------------
   fetchUserData()          | API timeout                 | TimeoutError
                            | API returns 429             | RateLimitError
@@ -264,9 +264,9 @@ Evaluate:
 * Input validation. For every new user input: is it validated, sanitized, and rejected loudly on failure? What happens with: nil, empty string, string when integer expected, string exceeding max length, unicode edge cases, HTML/script injection attempts?
 * Authorization. For every new data access: is it scoped to the right user/role? Is there a direct object reference vulnerability? Can user A access user B's data by manipulating IDs?
 * Secrets and credentials. New secrets? In env vars, not hardcoded? Rotatable?
-* Dependency risk. New gems/npm packages? Security track record?
+* Dependency risk. New npm packages? Security track record?
 * Data classification. PII, payment data, credentials? Handling consistent with existing patterns?
-* Injection vectors. SQL, command, template, LLM prompt injection — check all.
+* Injection vectors. XSS, command, template, LLM prompt injection — check all.
 * Audit logging. For sensitive operations: is there an audit trail?
 
 For each finding: threat, likelihood (High/Med/Low), impact (High/Med/Low), and whether the plan mitigates it.
@@ -338,7 +338,7 @@ Make a complete diagram of every new thing this plan introduces:
   NEW INTEGRATIONS / EXTERNAL CALLS:
     [list each]
 
-  NEW ERROR/RESCUE PATHS:
+  NEW ERROR/RECOVERY PATHS:
     [list each — cross-reference Section 2]
 ```
 For each item in the diagram:

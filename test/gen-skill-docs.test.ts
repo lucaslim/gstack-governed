@@ -69,6 +69,9 @@ describe('gen-skill-docs', () => {
     { dir: 'retro', name: 'retro' },
     { dir: 'setup-browser-cookies', name: 'setup-browser-cookies' },
     { dir: 'gstack-upgrade', name: 'gstack-upgrade' },
+    { dir: 'plan-design-review', name: 'plan-design-review' },
+    { dir: 'qa-design-review', name: 'qa-design-review' },
+    { dir: 'design-consultation', name: 'design-consultation' },
   ];
 
   test('every skill has a SKILL.md.tmpl template', () => {
@@ -183,10 +186,12 @@ describe('gen-skill-docs', () => {
     const qaOnlyContent = fs.readFileSync(path.join(ROOT, 'qa-only', 'SKILL.md'), 'utf-8');
     expect(qaOnlyContent).toContain('Never fix bugs');
     expect(qaOnlyContent).toContain('NEVER fix anything');
-    // Should not have Edit, Glob, or Grep in allowed-tools
-    expect(qaOnlyContent).not.toMatch(/allowed-tools:[\s\S]*?Edit/);
-    expect(qaOnlyContent).not.toMatch(/allowed-tools:[\s\S]*?Glob/);
-    expect(qaOnlyContent).not.toMatch(/allowed-tools:[\s\S]*?Grep/);
+    // Should not have Edit, Glob, or Grep in allowed-tools (frontmatter only)
+    const frontmatter = qaOnlyContent.split('---')[1] || '';
+    const allowedTools = frontmatter.match(/allowed-tools:[\s\S]*?(?=\n\w|\n---)/)?.[0] || '';
+    expect(allowedTools).not.toContain('Edit');
+    expect(allowedTools).not.toContain('Glob');
+    expect(allowedTools).not.toContain('Grep');
   });
 
   test('qa has fix-loop tools and phases', () => {
