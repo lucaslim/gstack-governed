@@ -503,6 +503,8 @@ describe('Serena integration', () => {
   const skillsWithSerena = [
     'review/SKILL.md', 'ship/SKILL.md', 'qa/SKILL.md',
     'plan-ceo-review/SKILL.md', 'plan-eng-review/SKILL.md',
+    'design-consultation/SKILL.md', 'plan-design-review/SKILL.md',
+    'qa-design-review/SKILL.md',
   ];
   const skillsWithoutSerena = [
     'browse/SKILL.md', 'qa-only/SKILL.md', 'retro/SKILL.md',
