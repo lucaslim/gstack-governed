@@ -73,18 +73,18 @@ git diff origin/main..upstream/main -- CHANGELOG.md
 Print a summary of what is new upstream: new skills, changed templates, generator changes,
 new commands, version bumps. This summary goes into the PR body later.
 
-### Step 2 — Create sync branch from origin/main and merge upstream
+### Step 2 — Create sync branch from origin/main and rebase upstream
 
-Create a branch based on `origin/main` (the fork), then merge upstream into it. This
-preserves all existing fork adaptations and only introduces the upstream delta — avoiding
-unnecessary merge conflicts when the PR lands.
+Create a branch based on `origin/main` (the fork), then rebase onto `upstream/main`.
+This replays the fork's commits on top of upstream, producing a linear history and
+avoiding unnecessary merge conflicts when the PR lands.
 
 ```bash
 git checkout -b sync-upstream-$(date +%Y%m%d) origin/main
-git merge upstream/main --no-edit
+git rebase upstream/main
 ```
 
-**If there are merge conflicts:** Resolve them, preferring the fork's version for:
+**If there are rebase conflicts:** Resolve them, preferring the fork's version for:
 - Generator functions that the fork has already adapted (e.g. `generatePreamble()`)
 - Template sections the fork has already adapted (React/TS vocab, Greptile removal)
 - Fork-only files (sync-gstack/, .serena/, .gitignore)
@@ -92,12 +92,14 @@ git merge upstream/main --no-edit
 For genuinely new upstream content (new skills, new template sections), accept upstream's
 version — it will be adapted in Steps 3–4.
 
-**If the merge is clean:** Continue — Steps 3–4 will verify and adapt any new content.
+After resolving each conflict: `git add <files> && git rebase --continue`
+
+**If the rebase is clean:** Continue — Steps 3–4 will verify and adapt any new content.
 
 ### Step 3 — Verify generator (preamble trim)
 
 Since the branch started from `origin/main`, the generator already has the fork's
-adaptations. This step verifies the merge didn't reintroduce upstream content and
+adaptations. This step verifies the rebase didn't reintroduce upstream content and
 fixes it if it did.
 
 Use Serena's symbolic tools to inspect the generator efficiently:
@@ -145,7 +147,7 @@ incomplete.
 ### Step 4 — Verify and fix React/TS template adaptations
 
 Since the branch started from `origin/main`, most adaptations are already in place.
-This step verifies the merge didn't reintroduce upstream content (Rails vocab, Greptile,
+This step verifies the rebase didn't reintroduce upstream content (Rails vocab, Greptile,
 VERSION/CHANGELOG steps, etc.) and adapts any genuinely NEW upstream content.
 
 Edit `.tmpl` files (never generated `.md` files). For each skill below, check whether
