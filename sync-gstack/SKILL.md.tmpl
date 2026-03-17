@@ -38,9 +38,14 @@ generator script.
 
 ## Prerequisites
 
+Detect the gstack repo root (works in both global installs and Conductor worktrees):
+```bash
+GSTACK_ROOT=$(git rev-parse --show-toplevel)
+echo "GSTACK_ROOT=$GSTACK_ROOT"
+```
+
 The fork must have an `upstream` remote pointing to `garrytan/gstack`:
 ```bash
-cd ~/.claude/skills/gstack
 git remote -v  # should show upstream → garrytan/gstack
 ```
 
@@ -51,7 +56,6 @@ If missing: `git remote add upstream https://github.com/garrytan/gstack.git`
 ### Step 1 — Fetch upstream + assess what changed
 
 ```bash
-cd ~/.claude/skills/gstack
 git fetch upstream
 ```
 
@@ -386,10 +390,12 @@ Print:
 - Summary of upstream changes (from CHANGELOG diff in Step 1)
 - Which templates were modified vs. passed through
 - Link to PR
-- Reminder: after merging, deploy with:
+- Reminder: after merging, deploy to the active skill install:
   ```
-  cd ~/.claude/skills/gstack && git checkout main && git pull && ./setup
+  cd <GSTACK_ROOT> && git checkout main && git pull && ./setup
   ```
+  Where `<GSTACK_ROOT>` is whichever directory hosts gstack (e.g. `~/.claude/skills/gstack`
+  for global installs, or the Conductor worktree path).
 
 ## Skill Coverage Reference
 
