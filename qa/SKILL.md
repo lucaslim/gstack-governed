@@ -287,7 +287,7 @@ git status --porcelain
 ```
 
 Only commit if there are changes. Stage all bootstrap files (config, test directory, TESTING.md, CLAUDE.md, .github/workflows/test.yml if created):
-`git commit -m "chore: bootstrap test framework ({framework name})"`
+`git commit --no-verify -m "chore: bootstrap test framework ({framework name})"`
 
 ---
 
