@@ -158,7 +158,7 @@ If `NEEDS_SETUP`:
 ls jest.config.* vitest.config.* playwright.config.* .rspec pytest.ini pyproject.toml phpunit.xml 2>/dev/null
 ls -d test/ tests/ spec/ __tests__/ cypress/ e2e/ 2>/dev/null
 # Check opt-out marker
-[ -f .gstack/no-test-bootstrap ] && echo "BOOTSTRAP_DECLINED"
+[ -f .local-context/no-test-bootstrap ] && echo "BOOTSTRAP_DECLINED"
 ```
 
 **If test framework detected** (config files or test directories found):
@@ -171,7 +171,7 @@ Store conventions as prose context for use in Phase 8e.5 or Step 3.4. **Skip the
 **If NO runtime detected** (no config files found): Use AskUserQuestion:
 "I couldn't detect your project's language. What runtime are you using?"
 Options: A) Node.js/TypeScript B) Ruby/Rails C) Python D) Go E) Rust F) PHP G) Elixir H) This project doesn't need tests.
-If user picks H → write `.gstack/no-test-bootstrap` and continue without tests.
+If user picks H → write `.local-context/no-test-bootstrap` and continue without tests.
 
 **If runtime detected but no test framework — bootstrap:**
 
@@ -203,7 +203,7 @@ B) [Alternative] — [rationale]. Includes: [packages]
 C) Skip — don't set up testing right now
 RECOMMENDATION: Choose A because [reason based on project context]"
 
-If user picks C → write `.gstack/no-test-bootstrap`. Tell user: "If you change your mind later, delete `.gstack/no-test-bootstrap` and re-run." Continue without tests.
+If user picks C → write `.local-context/no-test-bootstrap`. Tell user: "If you change your mind later, delete `.local-context/no-test-bootstrap` and re-run." Continue without tests.
 
 If multiple runtimes detected (monorepo) → ask which runtime to set up first, with option to do both sequentially.
 
@@ -699,7 +699,7 @@ The test MUST:
   ```
   // Regression: ISSUE-NNN — {what broke}
   // Found by /qa on {YYYY-MM-DD}
-  // Report: .gstack/qa-reports/qa-report-{domain}-{date}.md
+  // Report: .local-context/qa-reports/qa-report-{domain}-{date}.md
   ```
 
 Test type decision:

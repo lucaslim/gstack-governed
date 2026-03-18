@@ -2,7 +2,7 @@
  * gstack CLI — thin wrapper that talks to the persistent server
  *
  * Flow:
- *   1. Read .gstack/browse.json for port + token
+ *   1. Read .local-context/browse.json for port + token
  *   2. If missing or stale PID → start server in background
  *   3. Health check + version mismatch detection
  *   4. Send command via HTTP POST

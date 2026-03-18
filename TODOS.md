@@ -151,7 +151,7 @@
 
 ### Ship log — persistent record of /ship runs
 
-**What:** Append structured JSON entry to `.gstack/ship-log.json` at end of every /ship run (version, date, branch, PR URL, review findings, todos completed, test results).
+**What:** Append structured JSON entry to `.local-context/ship-log.json` at end of every /ship run (version, date, branch, PR URL, review findings, todos completed, test results).
 
 **Why:** /retro has no structured data about shipping velocity. Ship log enables: PRs-per-week trending, review finding rates, test suite growth.
 
