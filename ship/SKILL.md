@@ -3,7 +3,7 @@ name: ship
 version: 1.0.0
 model: sonnet
 description: |
-  Ship workflow: detect + merge base branch, run tests, review diff, commit, push, create PR.
+  Ship workflow: detect + rebase onto base branch, run tests, review diff, commit, push, create PR.
 allowed-tools:
   - Bash
   - Read
@@ -84,7 +84,7 @@ You are running the `/ship` workflow. This is a **non-interactive, fully automat
 
 **Only stop for:**
 - On the base branch (abort)
-- Merge conflicts that can't be auto-resolved (stop, show conflicts)
+- Rebase conflicts that can't be auto-resolved (abort rebase, stop, show conflicts)
 - Test failures (stop, show failures)
 - Pre-landing review finds ASK items that need user judgment
 
@@ -169,15 +169,15 @@ If the Eng Review is NOT "CLEAR":
 
 ---
 
-## Step 2: Merge the base branch (BEFORE tests)
+## Step 2: Rebase onto the base branch (BEFORE tests)
 
-Fetch and merge the base branch into the feature branch so tests run against the merged state:
+Fetch and rebase the feature branch onto the base branch so tests run against the rebased state:
 
 ```bash
-git fetch origin <base> && git merge origin/<base> --no-edit
+git fetch origin <base> && git rebase origin/<base>
 ```
 
-**If there are merge conflicts:** Try to auto-resolve if they are simple (lock files, config file ordering). If conflicts are complex or ambiguous, **STOP** and show them.
+**If there are rebase conflicts:** Try to auto-resolve if they are simple (lock files, config file ordering). If conflicts are complex or ambiguous, run `git rebase --abort` to restore the original branch state, **STOP**, and show the conflicts.
 
 **If already up to date:** Continue silently.
 
@@ -584,6 +584,8 @@ git push -u origin <branch-name>
 ---
 
 ## Step 7: Create PR
+
+Before creating the PR, check the project's CLAUDE.md for a PR template or additional PR instructions (look for sections mentioning "PR", "pull request", or "template"). If found, apply those instructions to the PR title, body, or flags. If `--repo` is specified in CLAUDE.md, use it.
 
 Create a pull request using `gh`:
 
