@@ -68,10 +68,13 @@ describe('gen-skill-docs', () => {
     { dir: 'plan-eng-review', name: 'plan-eng-review' },
     { dir: 'retro', name: 'retro' },
     { dir: 'setup-browser-cookies', name: 'setup-browser-cookies' },
-    { dir: 'gstack-upgrade', name: 'gstack-upgrade' },
-    { dir: 'plan-design-review', name: 'plan-design-review' },
+{ dir: 'plan-design-review', name: 'plan-design-review' },
     { dir: 'design-review', name: 'design-review' },
     { dir: 'design-consultation', name: 'design-consultation' },
+    { dir: 'document-release', name: 'document-release' },
+    { dir: 'office-hours', name: 'office-hours' },
+    { dir: 'debug', name: 'debug' },
+    { dir: 'sync-gstack', name: 'sync-gstack' },
   ];
 
   test('every skill has a SKILL.md.tmpl template', () => {
@@ -136,24 +139,8 @@ describe('gen-skill-docs', () => {
     expect(browseTmpl).toContain('{{PREAMBLE}}');
   });
 
-  test('generated SKILL.md contains contributor mode check', () => {
-    const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
-    expect(content).toContain('Contributor Mode');
-    expect(content).toContain('gstack_contributor');
-    expect(content).toContain('contributor-logs');
-  });
-
-  test('generated SKILL.md contains session awareness', () => {
-    const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
-    expect(content).toContain('_SESSIONS');
-    expect(content).toContain('RECOMMENDATION');
-  });
-
-  test('generated SKILL.md contains branch detection', () => {
-    const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
-    expect(content).toContain('_BRANCH');
-    expect(content).toContain('git branch --show-current');
-  });
+  // Contributor mode, session awareness, and branch detection tests removed —
+  // governed fork strips these from the preamble (only AskUserQuestion format remains).
 
   test('generated SKILL.md contains ELI16 simplification rules', () => {
     const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');

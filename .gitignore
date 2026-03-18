@@ -1,7 +1,7 @@
 .env
 node_modules/
 browse/dist/
-.gstack/
+.local-context/
 .claude/skills/
 /tmp/
 *.log
@@ -11,3 +11,4 @@ bun.lock
 .env.local
 .env.*
 !.env.example
+!.serena

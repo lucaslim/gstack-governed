@@ -1,6 +1,7 @@
 ---
 name: design-review
 version: 2.0.0
+model: sonnet
 description: |
   Designer's eye QA: finds visual inconsistency, spacing issues, hierarchy problems,
   AI slop patterns, and slow interactions — then fixes them. Iteratively fixes issues
@@ -63,7 +64,7 @@ fi
 **Create output directories:**
 
 ```bash
-REPORT_DIR=".gstack/design-reports"
+REPORT_DIR=".local-context/design-reports"
 mkdir -p "$REPORT_DIR/screenshots"
 ```
 
@@ -80,7 +81,7 @@ Record baseline design score and AI slop score at end of Phase 6.
 ## Output Structure
 
 ```
-.gstack/design-reports/
+.local-context/design-reports/
 ├── design-audit-{domain}-{YYYY-MM-DD}.md    # Structured report
 ├── screenshots/
 │   ├── first-impression.png                  # Phase 1
@@ -205,7 +206,7 @@ After all fixes are applied:
 
 Write the report to both local and project-scoped locations:
 
-**Local:** `.gstack/design-reports/design-audit-{domain}-{YYYY-MM-DD}.md`
+**Local:** `.local-context/design-reports/design-audit-{domain}-{YYYY-MM-DD}.md`
 
 **Project-scoped:**
 ```bash

@@ -72,7 +72,7 @@ if [ "$SKILLS_BASENAME" = "skills" ]; then
       target="$SKILLS_DIR/$skill_name"
       # Create or update symlink; skip if a real file/directory exists
       if [ -L "$target" ] || [ ! -e "$target" ]; then
-        ln -snf "gstack/$skill_name" "$target"
+        ln -snf "$GSTACK_DIR/$skill_name" "$target"
         linked+=("$skill_name")
       fi
     fi
@@ -92,6 +92,6 @@ fi
 # 4. First-time welcome + legacy cleanup
 if [ ! -d "$HOME/.gstack" ]; then
   mkdir -p "$HOME/.gstack"
-  echo "  Welcome! Run /gstack-upgrade anytime to stay current."
+  echo "  Welcome! Run /sync-gstack anytime to stay current."
 fi
 rm -f /tmp/gstack-latest-version
