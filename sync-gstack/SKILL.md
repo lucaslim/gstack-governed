@@ -282,6 +282,13 @@ grep -rn 'ActiveRecord\|bin/test-lane\|npm run test\|Rails\|Models/Controllers\|
   browse/SKILL.md.tmpl
 ```
 
+Also check for `.gstack/` artifact paths (project-level, not `~/.gstack/` global):
+```bash
+grep -rn '\.gstack/' document-release/SKILL.md.tmpl setup-browser-cookies/SKILL.md.tmpl SKILL.md.tmpl browse/SKILL.md.tmpl | grep -v '~/.gstack'
+```
+
+If matches are found, apply the `.gstack/` → `.local-context/` path conversion.
+
 Also check any NEW `.tmpl` files that upstream may have added since the last sync:
 ```bash
 find . -name 'SKILL.md.tmpl' -not -path './node_modules/*' | sort
@@ -348,6 +355,13 @@ Every `*/SKILL.md` should show changes matching the template/generator modificat
 ```bash
 grep -rn '_UPD=\|Contributor Mode\|bin/test-lane\|ActiveRecord\|Controllers & views\|greptile' */SKILL.md SKILL.md
 ```
+
+**Path check** — confirm upstream `.gstack/` artifact paths were converted to `.local-context/`:
+```bash
+grep -rn '\.gstack/' */SKILL.md SKILL.md | grep -v '~/.gstack'
+```
+
+This should return empty. If matches appear, trace to the template and apply the `.gstack/` → `.local-context/` conversion.
 
 If any matches are found, trace back to the template or generator and fix.
 

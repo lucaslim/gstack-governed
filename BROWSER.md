@@ -46,7 +46,7 @@ gstack's browser is a compiled CLI binary that talks to a persistent local Chrom
 
 ### Lifecycle
 
-1. **First call**: CLI checks `.gstack/browse.json` (in the project root) for a running server. None found — it spawns `bun run browse/src/server.ts` in the background. The server launches headless Chromium via Playwright, picks a random port (10000-60000), generates a bearer token, writes the state file, and starts accepting HTTP requests. This takes ~3 seconds.
+1. **First call**: CLI checks `.local-context/browse.json` (in the project root) for a running server. None found — it spawns `bun run browse/src/server.ts` in the background. The server launches headless Chromium via Playwright, picks a random port (10000-60000), generates a bearer token, writes the state file, and starts accepting HTTP requests. This takes ~3 seconds.
 
 2. **Subsequent calls**: CLI reads the state file, sends an HTTP POST with the bearer token, prints the response. ~100-200ms round trip.
 
@@ -111,15 +111,15 @@ Mutual exclusion: `--clip` + selector and `--viewport` + `--clip` both throw err
 
 ### Authentication
 
-Each server session generates a random UUID as a bearer token. The token is written to the state file (`.gstack/browse.json`) with chmod 600. Every HTTP request must include `Authorization: Bearer <token>`. This prevents other processes on the machine from controlling the browser.
+Each server session generates a random UUID as a bearer token. The token is written to the state file (`.local-context/browse.json`) with chmod 600. Every HTTP request must include `Authorization: Bearer <token>`. This prevents other processes on the machine from controlling the browser.
 
 ### Console, network, and dialog capture
 
 The server hooks into Playwright's `page.on('console')`, `page.on('response')`, and `page.on('dialog')` events. All entries are kept in O(1) circular buffers (50,000 capacity each) and flushed to disk asynchronously via `Bun.write()`:
 
-- Console: `.gstack/browse-console.log`
-- Network: `.gstack/browse-network.log`
-- Dialog: `.gstack/browse-dialog.log`
+- Console: `.local-context/browse-console.log`
+- Network: `.local-context/browse-network.log`
+- Dialog: `.local-context/browse-dialog.log`
 
 The `console`, `network`, and `dialog` commands read from the in-memory buffers, not disk.
 
@@ -141,12 +141,12 @@ For `eval` files, single-line files return the expression value directly. Multi-
 
 ### Multi-workspace support
 
-Each workspace gets its own isolated browser instance with its own Chromium process, tabs, cookies, and logs. State is stored in `.gstack/` inside the project root (detected via `git rev-parse --show-toplevel`).
+Each workspace gets its own isolated browser instance with its own Chromium process, tabs, cookies, and logs. State is stored in `.local-context/` inside the project root (detected via `git rev-parse --show-toplevel`).
 
 | Workspace | State file | Port |
 |-----------|------------|------|
-| `/code/project-a` | `/code/project-a/.gstack/browse.json` | random (10000-60000) |
-| `/code/project-b` | `/code/project-b/.gstack/browse.json` | random (10000-60000) |
+| `/code/project-a` | `/code/project-a/.local-context/browse.json` | random (10000-60000) |
+| `/code/project-b` | `/code/project-b/.local-context/browse.json` | random (10000-60000) |
 
 No port collisions. No shared state. Each project is fully isolated.
 
@@ -156,7 +156,7 @@ No port collisions. No shared state. Each project is fully isolated.
 |----------|---------|-------------|
 | `BROWSE_PORT` | 0 (random 10000-60000) | Fixed port for the HTTP server (debug override) |
 | `BROWSE_IDLE_TIMEOUT` | 1800000 (30 min) | Idle shutdown timeout in ms |
-| `BROWSE_STATE_FILE` | `.gstack/browse.json` | Path to state file (CLI passes to server) |
+| `BROWSE_STATE_FILE` | `.local-context/browse.json` | Path to state file (CLI passes to server) |
 | `BROWSE_SERVER_SCRIPT` | auto-detected | Path to server.ts |
 
 ### Performance
@@ -227,7 +227,7 @@ Tests spin up a local HTTP server (`browse/test/test-server.ts`) serving HTML fi
 
 | File | Role |
 |------|------|
-| `browse/src/cli.ts` | Entry point. Reads `.gstack/browse.json`, sends HTTP to the server, prints response. |
+| `browse/src/cli.ts` | Entry point. Reads `.local-context/browse.json`, sends HTTP to the server, prints response. |
 | `browse/src/server.ts` | Bun HTTP server. Routes commands to the right handler. Manages idle timeout. |
 | `browse/src/browser-manager.ts` | Chromium lifecycle — launch, tab management, ref map, crash detection. |
 | `browse/src/snapshot.ts` | Parses accessibility tree, assigns `@e`/`@c` refs, builds Locator map. Handles `--diff`, `--annotate`, `-C`. |

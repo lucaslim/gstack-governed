@@ -63,7 +63,7 @@ The daemon model means:
 
 ### State file
 
-The server writes `.gstack/browse.json` (atomic write via tmp + rename, mode 0o600):
+The server writes `.local-context/browse.json` (atomic write via tmp + rename, mode 0o600):
 
 ```json
 { "pid": 12345, "port": 34567, "token": "uuid-v4", "startedAt": "...", "binaryVersion": "abc123" }
@@ -164,7 +164,7 @@ The `-C` flag finds elements that are clickable but not in the ARIA tree — thi
 Three ring buffers (50,000 entries each, O(1) push):
 
 ```
-Browser events → CircularBuffer (in-memory) → Async flush to .gstack/*.log
+Browser events → CircularBuffer (in-memory) → Async flush to .local-context/*.log
 ```
 
 Console messages, network requests, and dialog events each have their own buffer. Flushing happens every 1 second — the server appends only new entries since the last flush. This means:

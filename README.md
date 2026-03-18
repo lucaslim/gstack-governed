@@ -121,7 +121,7 @@ gstack is powerful with one Claude Code session. It is transformative with ten.
 
 [Conductor](https://conductor.build) runs multiple Claude Code sessions in parallel — each in its own isolated workspace. That means you can have one session running `/qa` on staging, another doing `/review` on a PR, a third implementing a feature, and seven more working on other branches. All at the same time.
 
-Each workspace gets its own isolated browser instance automatically — separate Chromium process, cookies, tabs, and logs stored in `.gstack/` inside each project root. No port collisions, no shared state, no configuration needed. `/browse` and `/qa` sessions never interfere with each other, even across ten parallel workspaces.
+Each workspace gets its own isolated browser instance automatically — separate Chromium process, cookies, tabs, and logs stored in `.local-context/` inside each project root. No port collisions, no shared state, no configuration needed. `/browse` and `/qa` sessions never interfere with each other, even across ten parallel workspaces.
 
 This is the setup I use. One person, ten parallel agents, each with the right cognitive mode for its task. That is not incremental improvement. That is a different way of building software.
 
@@ -331,7 +331,7 @@ Claude: Design Score: C  |  AI Slop Score: D
         4. Kill the gradient hero — use a real image or bold typography (High, AI Slop)
         5. Add a second font for headings — Inter-only reads as generic (Medium, Typography)
 
-        [Full report saved to .gstack/design-reports/]
+        [Full report saved to .local-context/design-reports/]
         Want me to save this inferred design system as your DESIGN.md?
 ```
 
@@ -372,7 +372,7 @@ Claude: [Runs full design audit — same output as /plan-design-review]
         Design Score: C → B+  |  AI Slop Score: D → A
         9 fixes applied (8 verified, 1 best-effort). 3 deferred.
 
-        [Report with before/after screenshots saved to .gstack/design-reports/]
+        [Report with before/after screenshots saved to .local-context/design-reports/]
 ```
 
 Nine commits, each touching one concern. The AI Slop score went from D to A because the three most recognizable patterns (gradient hero, 3-column grid, uniform radius) are gone. The design score improved two grades because the typography now has a scale, the spacing has hierarchy, and interactive elements have proper states.
@@ -568,10 +568,10 @@ Claude: [Explores 12 pages, fills 3 forms, tests 2 flows]
         2. HIGH: Mobile nav menu doesn't close after selecting an item
         3. MEDIUM: Dashboard chart overlaps sidebar below 1024px
 
-        [Full report with screenshots saved to .gstack/qa-reports/]
+        [Full report with screenshots saved to .local-context/qa-reports/]
 ```
 
-Reports and screenshots accumulate in `.gstack/qa-reports/` so you can track quality over time and compare runs.
+Reports and screenshots accumulate in `.local-context/qa-reports/` so you can track quality over time and compare runs.
 
 **Testing authenticated pages:** Use `/setup-browser-cookies` first to import your real browser sessions, then `/qa` can test pages behind login.
 

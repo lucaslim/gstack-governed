@@ -8,8 +8,8 @@
  *   Auto-shutdown after BROWSE_IDLE_TIMEOUT (default 30 min)
  *
  * State:
- *   State file: <project-root>/.gstack/browse.json (set via BROWSE_STATE_FILE env)
- *   Log files:  <project-root>/.gstack/browse-{console,network,dialog}.log
+ *   State file: <project-root>/.local-context/browse.json (set via BROWSE_STATE_FILE env)
+ *   Log files:  <project-root>/.local-context/browse-{console,network,dialog}.log
  *   Port:       random 10000-60000 (or BROWSE_PORT env for debug override)
  */
 

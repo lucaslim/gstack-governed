@@ -291,7 +291,7 @@ export async function runSkillTest(options: {
   // Save failure transcript to persistent run directory (or fallback to workingDirectory)
   if (browseErrors.length > 0 || exitReason !== 'success') {
     try {
-      const failureDir = runDir || path.join(workingDirectory, '.gstack', 'test-transcripts');
+      const failureDir = runDir || path.join(workingDirectory, '.local-context', 'test-transcripts');
       fs.mkdirSync(failureDir, { recursive: true });
       const failureName = safeName
         ? `${safeName}-failure.json`
