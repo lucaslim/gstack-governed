@@ -13,13 +13,14 @@ import { COMMAND_DESCRIPTIONS } from '../browse/src/commands';
 import { SNAPSHOT_FLAGS } from '../browse/src/snapshot';
 import * as fs from 'fs';
 import * as path from 'path';
+import { overlay, TEMPLATE_CANDIDATES } from './stack-overlay';
 
 const ROOT = path.resolve(import.meta.dir, '..');
 const DRY_RUN = process.argv.includes('--dry-run');
 
 // ─── Template Context ───────────────────────────────────────
 
-interface TemplateContext {
+export interface TemplateContext {
   skillName: string;
   tmplPath: string;
 }
@@ -1144,19 +1145,30 @@ const RESOLVERS: Record<string, (ctx: TemplateContext) => string> = {
   TEST_BOOTSTRAP: generateTestBootstrap,
 };
 
+// Merge overlay resolvers (fork-only, e.g. SERENA_SETUP override)
+if (overlay?.resolvers) {
+  for (const [name, fn] of Object.entries(overlay.resolvers)) {
+    RESOLVERS[name] = fn;
+  }
+}
+
 // ─── Template Processing ────────────────────────────────────
 
 const GENERATED_HEADER = `<!-- AUTO-GENERATED from {{SOURCE}} — do not edit directly -->\n<!-- Regenerate: bun run gen:skill-docs -->\n`;
 
 function processTemplate(tmplPath: string): { outputPath: string; content: string } {
-  const tmplContent = fs.readFileSync(tmplPath, 'utf-8');
-  const relTmplPath = path.relative(ROOT, tmplPath);
-  const outputPath = tmplPath.replace(/\.tmpl$/, '');
+  // Determine skill name for overlay lookups
+  const dir = path.basename(path.dirname(tmplPath));
+  const skillName = dir === path.basename(ROOT) ? 'gstack' : dir;
 
-  // Extract skill name from frontmatter for TemplateContext
-  const nameMatch = tmplContent.match(/^name:\s*(.+)$/m);
-  const skillName = nameMatch ? nameMatch[1].trim() : path.basename(path.dirname(tmplPath));
-  const ctx: TemplateContext = { skillName, tmplPath };
+  // Check for template override (e.g. ship → scripts/overlays/ship-SKILL.md.tmpl)
+  const overrideTmpl = overlay?.templateOverrides?.[skillName];
+  const actualPath = overrideTmpl ? path.join(ROOT, overrideTmpl) : tmplPath;
+
+  const tmplContent = fs.readFileSync(actualPath, 'utf-8');
+  const relTmplPath = path.relative(ROOT, actualPath);
+  const outputPath = tmplPath.replace(/\.tmpl$/, '');
+  const ctx: TemplateContext = { skillName, tmplPath: actualPath };
 
   // Replace placeholders
   let content = tmplContent.replace(/\{\{(\w+)\}\}/g, (match, name) => {
@@ -1188,32 +1200,28 @@ function processTemplate(tmplPath: string): { outputPath: string; content: strin
 
 function findTemplates(): string[] {
   const templates: string[] = [];
-  const candidates = [
-    path.join(ROOT, 'SKILL.md.tmpl'),
-    path.join(ROOT, 'browse', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'qa', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'qa-only', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'setup-browser-cookies', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'ship', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'review', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'plan-ceo-review', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'plan-eng-review', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'retro', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'office-hours', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'investigate', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'gstack-upgrade', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'plan-design-review', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'design-review', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'design-consultation', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'document-release', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'codex', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'careful', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'freeze', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'guard', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'unfreeze', 'SKILL.md.tmpl'),
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) templates.push(p);
+  const candidateSet = new Set(
+    TEMPLATE_CANDIDATES.map((rel) => path.join(ROOT, rel)),
+  );
+
+  // Add extra templates from overlay (fork-only skills)
+  if (overlay?.extraTemplates) {
+    for (const extra of overlay.extraTemplates) {
+      candidateSet.add(path.join(ROOT, extra));
+    }
+  }
+
+  const skipSet = new Set(overlay?.skipTemplates ?? []);
+
+  for (const p of candidateSet) {
+    if (!fs.existsSync(p)) continue;
+
+    // Check skip list (overlay says fork doesn't ship these)
+    const dir = path.basename(path.dirname(p));
+    const skillName = dir === path.basename(ROOT) ? 'gstack' : dir;
+    if (skipSet.has(skillName)) continue;
+
+    templates.push(p);
   }
   return templates;
 }

@@ -67,9 +67,9 @@ export const overlay: StackOverlay = {
     SERENA_SETUP: generateSerenaSetup,
   },
 
-  templateOverrides: {
-    ship: 'scripts/overlays/ship-SKILL.md.tmpl',
-  },
+  // templateOverrides: { ship: 'scripts/overlays/ship-SKILL.md.tmpl' },
+  // TODO: re-enable when ship overlay is committed to the repo
+  templateOverrides: {},
 
   extraTemplates: [
     'qa-design-review/SKILL.md.tmpl',
