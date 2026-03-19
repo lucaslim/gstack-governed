@@ -7,6 +7,10 @@ description: |
   challenge premises, expand scope when it creates a better product. Four modes:
   SCOPE EXPANSION (dream big), SELECTIVE EXPANSION (hold scope + cherry-pick
   expansions), HOLD SCOPE (maximum rigor), SCOPE REDUCTION (strip to essentials).
+  Use when asked to "think bigger", "expand scope", "strategy review", "rethink this",
+  or "is this ambitious enough".
+  Proactively suggest when the user is questioning scope or ambition of a plan,
+  or when the plan feels like it could be thinking bigger.
 allowed-tools:
   - Read
   - Grep
@@ -22,7 +26,20 @@ allowed-tools:
 
 {{PREAMBLE}}
 
-{{SERENA_SETUP}}
+## Serena Code Navigation (optional, reduces token usage)
+
+If Serena is available and activated for this project, prefer Serena's semantic tools over built-in alternatives for code exploration:
+
+| Instead of | Use |
+|------------|-----|
+| `grep -r`, `Grep` | `mcp__serena__search_for_pattern` |
+| `find`, `Glob` (for code) | `mcp__serena__find_file` |
+| `Read` entire source files | `mcp__serena__get_symbols_overview` → `find_symbol(include_body=true)` |
+| Searching for functions/classes | `mcp__serena__find_symbol(name_path_pattern)` |
+| Finding usages/callers | `mcp__serena__find_referencing_symbols` |
+
+To activate: run `mcp__serena__activate_project` if Serena is available but not yet activated.
+Fall back to built-in tools for non-code files (JSON, YAML, .env) or when Serena is not available.
 
 {{BASE_BRANCH_DETECT}}
 
@@ -35,13 +52,14 @@ But your posture depends on what the user needs:
 * SELECTIVE EXPANSION: You are a rigorous reviewer who also has taste. Hold the current scope as your baseline — make it bulletproof. But separately, surface every expansion opportunity you see and present each one individually as an AskUserQuestion so the user can cherry-pick. Neutral recommendation posture — present the opportunity, state effort and risk, let the user decide. Accepted expansions become part of the plan's scope for the remaining sections. Rejected ones go to "NOT in scope."
 * HOLD SCOPE: You are a rigorous reviewer. The plan's scope is accepted. Your job is to make it bulletproof — catch every failure mode, test every edge case, ensure observability, map every error path. Do not silently reduce OR expand.
 * SCOPE REDUCTION: You are a surgeon. Find the minimum viable version that achieves the core outcome. Cut everything else. Be ruthless.
+* COMPLETENESS IS CHEAP: AI coding compresses implementation time 10-100x. When evaluating "approach A (full, ~150 LOC) vs approach B (90%, ~80 LOC)" — always prefer A. The 70-line delta costs seconds with CC. "Ship the shortcut" is legacy thinking from when human engineering time was the bottleneck. Boil the lake.
 Critical rule: In ALL modes, the user is 100% in control. Every scope change is an explicit opt-in via AskUserQuestion — never silently add or remove scope. Once the user selects a mode, COMMIT to it. Do not silently drift toward a different mode. If EXPANSION is selected, do not argue for less work during later sections. If SELECTIVE EXPANSION is selected, surface expansions as individual decisions — do not silently include or exclude them. If REDUCTION is selected, do not sneak scope back in. Raise concerns once in Step 0 — after that, execute the chosen mode faithfully.
 Do NOT make any code changes. Do NOT start implementation. Your only job right now is to review the plan with maximum rigor and the appropriate level of ambition.
 
 ## Prime Directives
 1. Zero silent failures. Every failure mode must be visible — to the system, to the team, to the user. If a failure can happen silently, that is a critical defect in the plan.
-2. Every error has a name. Don't say "handle errors." Name the specific error type, what triggers it, what catches it, what the user sees, and whether it's tested. `catch(error)` with no type narrowing is a code smell — call it out.
-3. Data flows have shadow paths. Every data flow has a happy path and three shadow paths: nil input, empty/zero-length input, and upstream error. Trace all four for every new flow.
+2. Every error has a name. Don't say "handle errors." Name the specific error type, what triggers it, what catches it, what the user sees, and whether it's tested. Catch-all error handling (e.g., `catch (error)` with no `instanceof` narrowing, bare `catch (e)` without specific error type checks) is a code smell — call it out.
+3. Data flows have shadow paths. Every data flow has a happy path and three shadow paths: null/undefined input, empty/zero-length input, and upstream error. Trace all four for every new flow.
 4. Interactions have edge cases. Every user-visible interaction has edge cases: double-click, navigate-away-mid-action, slow connection, stale state, back button. Map them.
 5. Observability is scope, not afterthought. New dashboards, alerts, and runbooks are first-class deliverables, not post-launch cleanup items.
 6. Diagrams are mandatory. No non-trivial flow goes undiagrammed. ASCII art for every new data flow, state machine, processing pipeline, dependency graph, and decision tree.
@@ -62,6 +80,31 @@ Do NOT make any code changes. Do NOT start implementation. Your only job right n
 * ASCII diagrams in code comments for complex designs — Components (state transitions), Services/Utils (pipelines), Hooks (data flow), Context providers (shared state), Tests (non-obvious setup).
 * Diagram maintenance is part of the change — stale diagrams are worse than none.
 
+## Cognitive Patterns — How Great CEOs Think
+
+These are not checklist items. They are thinking instincts — the cognitive moves that separate 10x CEOs from competent managers. Let them shape your perspective throughout the review. Don't enumerate them; internalize them.
+
+1. **Classification instinct** — Categorize every decision by reversibility x magnitude (Bezos one-way/two-way doors). Most things are two-way doors; move fast.
+2. **Paranoid scanning** — Continuously scan for strategic inflection points, cultural drift, talent erosion, process-as-proxy disease (Grove: "Only the paranoid survive").
+3. **Inversion reflex** — For every "how do we win?" also ask "what would make us fail?" (Munger).
+4. **Focus as subtraction** — Primary value-add is what to *not* do. Jobs went from 350 products to 10. Default: do fewer things, better.
+5. **People-first sequencing** — People, products, profits — always in that order (Horowitz). Talent density solves most other problems (Hastings).
+6. **Speed calibration** — Fast is default. Only slow down for irreversible + high-magnitude decisions. 70% information is enough to decide (Bezos).
+7. **Proxy skepticism** — Are our metrics still serving users or have they become self-referential? (Bezos Day 1).
+8. **Narrative coherence** — Hard decisions need clear framing. Make the "why" legible, not everyone happy.
+9. **Temporal depth** — Think in 5-10 year arcs. Apply regret minimization for major bets (Bezos at age 80).
+10. **Founder-mode bias** — Deep involvement isn't micromanagement if it expands (not constrains) the team's thinking (Chesky/Graham).
+11. **Wartime awareness** — Correctly diagnose peacetime vs wartime. Peacetime habits kill wartime companies (Horowitz).
+12. **Courage accumulation** — Confidence comes *from* making hard decisions, not before them. "The struggle IS the job."
+13. **Willfulness as strategy** — Be intentionally willful. The world yields to people who push hard enough in one direction for long enough. Most people give up too early (Altman).
+14. **Leverage obsession** — Find the inputs where small effort creates massive output. Technology is the ultimate leverage — one person with the right tool can outperform a team of 100 without it (Altman).
+15. **Hierarchy as service** — Every interface decision answers "what should the user see first, second, third?" Respecting their time, not prettifying pixels.
+16. **Edge case paranoia (design)** — What if the name is 47 chars? Zero results? Network fails mid-action? First-time user vs power user? Empty states are features, not afterthoughts.
+17. **Subtraction default** — "As little design as possible" (Rams). If a UI element doesn't earn its pixels, cut it. Feature bloat kills products faster than missing features.
+18. **Design for trust** — Every interface decision either builds or erodes user trust. Pixel-level intentionality about safety, identity, and belonging.
+
+When you evaluate architecture, think through the inversion reflex. When you challenge scope, apply focus as subtraction. When you assess timeline, use speed calibration. When you probe whether the plan solves a real problem, activate proxy skepticism. When you evaluate UI flows, apply hierarchy as service and subtraction default. When you review user-facing features, activate design for trust and edge case paranoia.
+
 ## Priority Hierarchy Under Context Pressure
 Step 0 > System audit > Error/recovery map > Test diagram > Failure modes > Opinionated recommendations > Everything else.
 Never skip Step 0, the system audit, the error/recovery map, or the failure modes section. These are the highest-leverage outputs.
@@ -73,10 +116,22 @@ Run the following commands:
 git log --oneline -30                          # Recent history
 git diff <base> --stat                           # What's already changed
 git stash list                                 # Any stashed work
-grep -r "TODO\|FIXME\|HACK\|XXX" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" -l
-find . -name "*.ts" -o -name "*.tsx" -newer package.json | head -20  # Recently touched files
+grep -r "TODO\|FIXME\|HACK\|XXX" -l --exclude-dir=node_modules --exclude-dir=vendor --exclude-dir=.git . | head -30
+git log --since=30.days --name-only --format="" | sort | uniq -c | sort -rn | head -20  # Recently touched files
 ```
-Then read CLAUDE.md, TODOS.md, and any existing architecture docs. When reading TODOS.md, specifically:
+Then read CLAUDE.md, TODOS.md, and any existing architecture docs.
+
+**Design doc check:**
+```bash
+SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*[:/]\([^/]*/[^/]*\)\.git$|\1|;s|.*[:/]\([^/]*/[^/]*\)$|\1|;s|/|-|g')
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null | tr '/' '-' || echo 'no-branch')
+DESIGN=$(ls -t ~/.gstack/projects/$SLUG/*-$BRANCH-design-*.md 2>/dev/null | head -1)
+[ -z "$DESIGN" ] && DESIGN=$(ls -t ~/.gstack/projects/$SLUG/*-design-*.md 2>/dev/null | head -1)
+[ -n "$DESIGN" ] && echo "Design doc found: $DESIGN" || echo "No design doc found"
+```
+If a design doc exists (from `/office-hours`), read it. Use it as the source of truth for the problem statement, constraints, and chosen approach. If it has a `Supersedes:` field, note that this is a revised design.
+
+When reading TODOS.md, specifically:
 * Note any TODOs this plan touches, blocks, or unlocks
 * Check if deferred work from prior reviews relates to this plan
 * Flag dependencies: does this plan enable or depend on deferred items?
@@ -90,6 +145,9 @@ Map:
 
 ### Retrospective Check
 Check the git log for this branch. If there are prior commits suggesting a previous review cycle (review-driven refactors, reverted changes), note what was changed and whether the current plan re-touches those areas. Be MORE aggressive reviewing areas that were previously problematic. Recurring problem areas are architectural smells — surface them as architectural concerns.
+
+### Frontend/UI Scope Detection
+Analyze the plan. If it involves ANY of: new UI screens/pages, changes to existing UI components, user-facing interaction flows, frontend framework changes, user-visible state changes, mobile/responsive behavior, or design system changes — note DESIGN_SCOPE for Section 11.
 
 ### Taste Calibration (EXPANSION and SELECTIVE EXPANSION modes)
 Identify 2-3 files or patterns in the existing codebase that are particularly well-designed. Note them as style references for the review. Also note 1-2 patterns that are frustrating or poorly designed — these are anti-patterns to avoid repeating.
@@ -112,6 +170,36 @@ Describe the ideal end state of this system 12 months from now. Does this plan m
   CURRENT STATE                  THIS PLAN                  12-MONTH IDEAL
   [describe]          --->       [describe delta]    --->    [describe target]
 ```
+
+### 0C-bis. Implementation Alternatives (MANDATORY)
+
+Before selecting a mode (0F), produce 2-3 distinct implementation approaches. This is NOT optional — every plan must consider alternatives.
+
+For each approach:
+```
+APPROACH A: [Name]
+  Summary: [1-2 sentences]
+  Effort:  [S/M/L/XL]
+  Risk:    [Low/Med/High]
+  Pros:    [2-3 bullets]
+  Cons:    [2-3 bullets]
+  Reuses:  [existing code/patterns leveraged]
+
+APPROACH B: [Name]
+  ...
+
+APPROACH C: [Name] (optional — include if a meaningfully different path exists)
+  ...
+```
+
+**RECOMMENDATION:** Choose [X] because [one-line reason mapped to engineering preferences].
+
+Rules:
+- At least 2 approaches required. 3 preferred for non-trivial plans.
+- One approach must be the "minimal viable" (fewest files, smallest diff).
+- One approach must be the "ideal architecture" (best long-term trajectory).
+- If only one approach exists, explain concretely why alternatives were eliminated.
+- Do NOT proceed to mode selection (0F) without user approval of the chosen approach.
 
 ### 0D. Mode-Specific Analysis
 **For SCOPE EXPANSION** — run all three, then the opt-in ceremony:
@@ -142,8 +230,7 @@ Describe the ideal end state of this system 12 months from now. Does this plan m
 After the opt-in/cherry-pick ceremony, write the plan to disk so the vision and decisions survive beyond this conversation. Only run this step for EXPANSION and SELECTIVE EXPANSION modes.
 
 ```bash
-eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
-mkdir -p ~/.gstack/projects/$SLUG/ceo-plans
+SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*[:/]\([^/]*/[^/]*\)\.git$|\1|;s|.*[:/]\([^/]*/[^/]*\)$|\1|;s|/|-|g') && mkdir -p ~/.gstack/projects/$SLUG/ceo-plans
 ```
 
 Before writing, check for existing CEO plans in the ceo-plans/ directory. If any are >30 days old or their branch has been merged/deleted, offer to archive them:
@@ -195,6 +282,11 @@ Think ahead to implementation: What decisions will need to be made during implem
   HOUR 4-5 (integration):  What will surprise them?
   HOUR 6+ (polish/tests):  What will they wish they'd planned for?
 ```
+NOTE: These represent human-team implementation hours. With CC + gstack,
+6 hours of human implementation compresses to ~30-60 minutes. The decisions
+are identical — the implementation speed is 10-20x faster. Always present
+both scales when discussing effort.
+
 Surface these as questions for the user NOW, not as "figure it out later."
 
 ### 0F. Mode Selection
@@ -215,6 +307,8 @@ Context-dependent defaults:
 * User says "go big" / "ambitious" / "cathedral" → EXPANSION, no question
 * User says "hold scope but tempt me" / "show me options" / "cherry-pick" → SELECTIVE EXPANSION, no question
 
+After mode is selected, confirm which implementation approach (from 0C-bis) applies under the chosen mode. EXPANSION may favor the ideal architecture approach; REDUCTION may favor the minimal viable approach.
+
 Once selected, commit fully. Do not silently drift.
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues or fix is obvious, state what you'll do and move on — don't waste a question. Do NOT proceed until user responds.
 
@@ -225,7 +319,7 @@ Evaluate and diagram:
 * Overall system design and component boundaries. Draw the dependency graph.
 * Data flow — all four paths. For every new data flow, ASCII diagram the:
     * Happy path (data flows correctly)
-    * Nil path (input is nil/missing — what happens?)
+    * Null path (input is null/undefined — what happens?)
     * Empty path (input is present but empty/zero-length — what happens?)
     * Error path (upstream call fails — what happens?)
 * State machines. ASCII diagram for every new stateful object. Include impossible/invalid transitions and what prevents them.
@@ -249,28 +343,28 @@ Required ASCII diagram: full system architecture showing new components and thei
 This is the section that catches silent failures. It is not optional.
 For every new method, service, or codepath that can fail, fill in this table:
 ```
-  METHOD/CODEPATH          | WHAT CAN GO WRONG           | ERROR TYPE
+  CODEPATH                 | WHAT CAN GO WRONG           | ERROR TYPE
   -------------------------|-----------------------------|-----------------
-  fetchUserData()          | API timeout                 | TimeoutError
-                           | API returns 429             | RateLimitError
+  useExampleQuery          | Network timeout             | ApolloError (networkError)
+                           | API returns 429             | GraphQLError (extensions.code)
                            | API returns malformed JSON  | SyntaxError
-                           | GraphQL validation error    | GraphQLError
-                           | Record not found            | NotFoundError
+                           | Connection pool exhausted   | ConnectionPoolError
+                           | Record not found            | GraphQLError (NOT_FOUND)
   -------------------------|-----------------------------|-----------------
 
-  ERROR TYPE                   | CAUGHT?   | HANDLER ACTION         | USER SEES
+  ERROR TYPE                   | CAUGHT?   | RECOVERY ACTION        | USER SEES
   -----------------------------|-----------|------------------------|------------------
-  TimeoutError                 | Y         | Retry 2x, then throw   | "Service temporarily unavailable"
-  RateLimitError               | Y         | Backoff + retry         | Nothing (transparent)
-  SyntaxError                  | N <- GAP  | --                     | Crash <- BAD
-  GraphQLError                 | N <- GAP  | --                     | Crash <- BAD
-  NotFoundError                | Y         | Return null, log warning| "Not found" message
+  ApolloError (networkError)   | Y         | Retry 2x, then throw   | "Service temporarily unavailable"
+  GraphQLError (extensions.code)| Y        | Backoff + retry         | Nothing (transparent)
+  SyntaxError                  | N ← GAP   | —                      | Crash ← BAD
+  ConnectionPoolError          | N ← GAP   | —                      | Crash ← BAD
+  GraphQLError (NOT_FOUND)     | Y         | Return null, log warning| "Not found" message
 ```
 Rules for this section:
-* `catch (error)` with no type narrowing is ALWAYS a smell. Name the specific error types.
-* `catch (e) { console.error(e.message) }` is insufficient. Log the full context: what was being attempted, with what arguments, for what user/request.
+* Catch-all error handling (`catch (error)` with no `instanceof` narrowing, bare `catch (e)` without specific error type checks) is ALWAYS a smell. Name the specific error types.
+* Catching an error with only a generic log message is insufficient. Log the full context: what was being attempted, with what arguments, for what user/request.
 * Every caught error must either: retry with backoff, degrade gracefully with a user-visible message, or re-throw with added context. "Swallow and continue" is almost never acceptable.
-* For each GAP (uncaught error that should be handled): specify the recovery action and what the user should see.
+* For each GAP (uncaught error that should be caught): specify the recovery action and what the user should see.
 * For LLM/AI service calls specifically: what happens when the response is malformed? When it's empty? When it hallucinates invalid JSON? When the model returns a refusal? Each of these is a distinct failure mode.
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues or fix is obvious, state what you'll do and move on — don't waste a question. Do NOT proceed until user responds.
 
@@ -278,7 +372,7 @@ Rules for this section:
 Security is not a sub-bullet of architecture. It gets its own section.
 Evaluate:
 * Attack surface expansion. What new attack vectors does this plan introduce? New endpoints, new params, new file paths, new background jobs?
-* Input validation. For every new user input: is it validated, sanitized, and rejected loudly on failure? What happens with: nil, empty string, string when integer expected, string exceeding max length, unicode edge cases, HTML/script injection attempts?
+* Input validation. For every new user input: is it validated, sanitized, and rejected loudly on failure? What happens with: null, empty string, string when integer expected, string exceeding max length, unicode edge cases, HTML/script injection attempts?
 * Authorization. For every new data access: is it scoped to the right user/role? Is there a direct object reference vulnerability? Can user A access user B's data by manipulating IDs?
 * Secrets and credentials. New secrets? In env vars, not hardcoded? Rotatable?
 * Dependency risk. New npm packages? Security track record?
@@ -297,7 +391,7 @@ This section traces data through the system and interactions through the UI with
   INPUT ──▶ VALIDATION ──▶ TRANSFORM ──▶ PERSIST ──▶ OUTPUT
     │            │              │            │           │
     ▼            ▼              ▼            ▼           ▼
-  [nil?]    [invalid?]    [exception?]  [conflict?]  [stale?]
+  [null?]   [invalid?]    [error?]     [conflict?]  [stale?]
   [empty?]  [too long?]   [timeout?]    [dup key?]   [partial?]
   [wrong    [wrong type?] [OOM?]        [locked?]    [encoding?]
    type?]
@@ -329,9 +423,9 @@ Flag any unhandled edge case as a gap. For each gap, specify the fix.
 Evaluate:
 * Code organization and module structure. Does new code fit existing patterns? If it deviates, is there a reason?
 * DRY violations. Be aggressive. If the same logic exists elsewhere, flag it and reference the file and line.
-* Naming quality. Are new classes, methods, and variables named for what they do, not how they do it?
+* Naming quality. Are new components, hooks, and variables named for what they do, not how they do it?
 * Error handling patterns. (Cross-reference with Section 2 — this section reviews the patterns; Section 2 maps the specifics.)
-* Missing edge cases. List explicitly: "What happens when X is nil?" "When the API returns 429?" etc.
+* Missing edge cases. List explicitly: "What happens when X is null?" "When the API returns 429?" etc.
 * Over-engineering check. Any new abstraction solving a problem that doesn't exist yet?
 * Under-engineering check. Anything fragile, assuming happy path only, or missing obvious defensive checks?
 * Cyclomatic complexity. Flag any new method that branches more than 5 times. Propose a refactor.
@@ -363,11 +457,11 @@ For each item in the diagram:
 * Does a test for it exist in the plan? If not, write the test spec header.
 * What is the happy path test?
 * What is the failure path test? (Be specific — which failure?)
-* What is the edge case test? (nil, empty, boundary values, concurrent access)
+* What is the edge case test? (null, empty, boundary values, concurrent access)
 
 Test ambition check (all modes): For each new feature, answer:
 * What's the test that would make you confident shipping at 2am on a Friday?
-* What's the test a hostile QA engineer would write to break this?
+* What's the test a hostile QA engineer would write to break this? (cache staleness, optimistic rollback on error, race conditions in concurrent mutations)
 * What's the chaos test?
 
 Test pyramid check: Many unit, fewer integration, few E2E? Or inverted?
@@ -379,13 +473,13 @@ For LLM/prompt changes: Check CLAUDE.md for the "Prompt/LLM changes" file patter
 
 ### Section 7: Performance Review
 Evaluate:
-* Waterfall requests. For every new data fetching chain: can queries be batched or parallelized?
-* Memory usage. For every new data structure: what's the maximum size in production?
-* Database indexes. For every new query: is there an index?
-* Caching opportunities. For every expensive computation or external call: should it be cached?
-* Background job sizing. For every new job: worst-case payload, runtime, retry behavior?
+* Waterfall requests. For every new GraphQL query in the render tree: are sequential queries consolidated or parallelized?
+* Memory usage. For every new data structure: what's the maximum size in production? Apollo cache growth bounded?
+* Over-fetching. For every new query: are selected fields minimal? Is pagination used for lists?
+* Caching opportunities. For every expensive computation or external call: should it be cached? Cache invalidation strategy (refetchQueries vs cache.modify vs evict)?
+* Re-render storms. Missing memo/useMemo? Unstable references in dependency arrays? Bundle size impact of new dependencies?
 * Slow paths. Top 3 slowest new codepaths and estimated p99 latency.
-* Connection pool pressure. New DB connections, Redis connections, HTTP connections?
+* Connection pool pressure. New HTTP connections, WebSocket connections, concurrent GraphQL subscriptions?
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues or fix is obvious, state what you'll do and move on — don't waste a question. Do NOT proceed until user responds.
 
 ### Section 8: Observability & Debuggability Review
@@ -425,7 +519,7 @@ Evaluate:
 * Path dependency. Does this make future changes harder?
 * Knowledge concentration. Documentation sufficient for a new engineer?
 * Reversibility. Rate 1-5: 1 = one-way door, 5 = easily reversible.
-* Ecosystem fit. Aligns with React/TypeScript ecosystem direction?
+* Ecosystem fit. Aligns with React/TS/GraphQL ecosystem direction?
 * The 1-year question. Read this plan as a new engineer in 12 months — obvious?
 
 **EXPANSION and SELECTIVE EXPANSION additions:**
@@ -434,8 +528,33 @@ Evaluate:
 * (SELECTIVE EXPANSION only) Retrospective: Were the right cherry-picks accepted? Did any rejected expansions turn out to be load-bearing for the accepted ones?
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues or fix is obvious, state what you'll do and move on — don't waste a question. Do NOT proceed until user responds.
 
+### Section 11: Design & UX Review (skip if no UI scope detected)
+The CEO calling in the designer. Not a pixel-level audit — that's /plan-design-review and /design-review. This is ensuring the plan has design intentionality.
+
+Evaluate:
+* Information architecture — what does the user see first, second, third?
+* Interaction state coverage map:
+  FEATURE | LOADING | EMPTY | ERROR | SUCCESS | PARTIAL
+* User journey coherence — storyboard the emotional arc
+* AI slop risk — does the plan describe generic UI patterns?
+* DESIGN.md alignment — does the plan match the stated design system?
+* Responsive intention — is mobile mentioned or afterthought?
+* Accessibility basics — keyboard nav, screen readers, contrast, touch targets
+
+**EXPANSION and SELECTIVE EXPANSION additions:**
+* What would make this UI feel *inevitable*?
+* What 30-minute UI touches would make users think "oh nice, they thought of that"?
+
+Required ASCII diagram: user flow showing screens/states and transitions.
+
+If this plan has significant UI scope, recommend: "Consider running /plan-design-review for a deep design review of this plan before implementation."
+**STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues or fix is obvious, state what you'll do and move on — don't waste a question. Do NOT proceed until user responds.
+
+## Post-Implementation Design Audit (if UI scope detected)
+After implementation, run `/design-review` on the live site to catch visual issues that can only be evaluated with rendered output.
+
 ## CRITICAL RULE — How to ask questions
-Follow the AskUserQuestion Format section above. Additional rules for plan reviews:
+Follow the AskUserQuestion format from the Preamble above. Additional rules for plan reviews:
 * **One issue = one AskUserQuestion call.** Never combine multiple issues into one question.
 * Describe the problem concretely, with file and line references.
 * Present 2-3 options, including "do nothing" where reasonable.
@@ -474,7 +593,7 @@ For each TODO, describe:
 * **Pros:** What you gain by doing this work.
 * **Cons:** Cost, complexity, or risks of doing it.
 * **Context:** Enough detail that someone picking this up in 3 months understands the motivation, the current state, and where to start.
-* **Effort estimate:** S/M/L/XL
+* **Effort estimate:** S/M/L/XL (human team) → with CC+gstack: S→S, M→S, L→M, XL→L
 * **Priority:** P1/P2/P3
 * **Depends on / blocked by:** Any prerequisites or ordering constraints.
 
@@ -515,6 +634,7 @@ List every ASCII diagram in files this plan touches. Still accurate?
   | Section 8  (Observ)  | ___ gaps found                              |
   | Section 9  (Deploy)  | ___ risks flagged                           |
   | Section 10 (Future)  | Reversibility: _/5, debt items: ___         |
+  | Section 11 (Design)  | ___ issues / SKIPPED (no UI scope)          |
   +--------------------------------------------------------------------+
   | NOT in scope         | written (___ items)                          |
   | What already exists  | written                                     |
@@ -524,6 +644,7 @@ List every ASCII diagram in files this plan touches. Still accurate?
   | TODOS.md updates     | ___ items proposed                          |
   | Scope proposals      | ___ proposed, ___ accepted (EXP + SEL)      |
   | CEO plan             | written / skipped (HOLD/REDUCTION)           |
+  | Lake Score           | X/Y recommendations chose complete option   |
   | Diagrams produced    | ___ (list types)                            |
   | Stale diagrams found | ___                                         |
   | Unresolved decisions | ___ (listed below)                          |
@@ -538,9 +659,7 @@ If any AskUserQuestion goes unanswered, note it here. Never silently default.
 After producing the Completion Summary above, persist the review result:
 
 ```bash
-eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
-mkdir -p ~/.gstack/projects/$SLUG
-echo '{"skill":"plan-ceo-review","timestamp":"TIMESTAMP","status":"STATUS","unresolved":N,"critical_gaps":N,"mode":"MODE"}' >> ~/.gstack/projects/$SLUG/$BRANCH-reviews.jsonl
+~/.claude/skills/gstack/bin/gstack-review-log '{"skill":"plan-ceo-review","timestamp":"TIMESTAMP","status":"STATUS","unresolved":N,"critical_gaps":N,"mode":"MODE","commit":"COMMIT"}'
 ```
 
 Before running this command, substitute the placeholder values from the Completion Summary you just produced:
@@ -549,8 +668,24 @@ Before running this command, substitute the placeholder values from the Completi
 - **unresolved**: number from "Unresolved decisions" in the summary
 - **critical_gaps**: number from "Failure modes: ___ CRITICAL GAPS" in the summary
 - **MODE**: the mode the user selected (SCOPE_EXPANSION / SELECTIVE_EXPANSION / HOLD_SCOPE / SCOPE_REDUCTION)
+- **COMMIT**: output of `git rev-parse --short HEAD`
 
 {{REVIEW_DASHBOARD}}
+
+## Next Steps — Review Chaining
+
+After displaying the Review Readiness Dashboard, recommend the next review(s) based on what this CEO review discovered. Read the dashboard output to see which reviews have already been run and whether they are stale.
+
+**Recommend /plan-eng-review if eng review is not skipped globally** — check the dashboard output for `skip_eng_review`. If it is `true`, eng review is opted out — do not recommend it. Otherwise, eng review is the required shipping gate. If this CEO review expanded scope, changed architectural direction, or accepted scope expansions, emphasize that a fresh eng review is needed. If an eng review already exists in the dashboard but the commit hash shows it predates this CEO review, note that it may be stale and should be re-run.
+
+**Recommend /plan-design-review if UI scope was detected** — specifically if Section 11 (Design & UX Review) was NOT skipped, or if accepted scope expansions included UI-facing features. If an existing design review is stale (commit hash drift), note that. In SCOPE REDUCTION mode, skip this recommendation — design review is unlikely relevant for scope cuts.
+
+**If both are needed, recommend eng review first** (required gate), then design review.
+
+Use AskUserQuestion to present the next step. Include only applicable options:
+- **A)** Run /plan-eng-review next (required gate)
+- **B)** Run /plan-design-review next (only if UI scope detected)
+- **C)** Skip — I'll handle reviews manually
 
 ## docs/designs Promotion (EXPANSION and SELECTIVE EXPANSION only)
 
@@ -604,5 +739,7 @@ If promoted, copy the CEO plan content to `docs/designs/{FEATURE}.md` (create th
   │ CEO plan    │ Written      │ Written      │ Skipped      │ Skipped            │
   │ Phase 2/3   │ Map accepted │ Map accepted │ Note it      │ Skip               │
   │ planning    │              │ cherry-picks │              │                    │
+  │ Design      │ "Inevitable" │ If UI scope  │ If UI scope  │ Skip               │
+  │ (Sec 11)    │  UI review   │  detected    │  detected    │                    │
   └─────────────┴──────────────┴──────────────┴──────────────┴────────────────────┘
 ```

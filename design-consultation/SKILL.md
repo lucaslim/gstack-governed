@@ -3,10 +3,13 @@ name: design-consultation
 version: 1.0.0
 model: opus
 description: |
-  Design consultation: understands your product, researches competitors, proposes a
+  Design consultation: understands your product, researches the landscape, proposes a
   complete design system (aesthetic, typography, color, layout, spacing, motion), and
   generates font+color preview pages. Creates DESIGN.md as your project's design source
   of truth. For existing sites, use /plan-design-review to infer the system instead.
+  Use when asked to "design system", "brand guidelines", or "create DESIGN.md".
+  Proactively suggest when starting a new project's UI with no existing
+  design system or DESIGN.md.
 allowed-tools:
   - Bash
   - Read
@@ -25,42 +28,159 @@ allowed-tools:
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
+## Preamble (run first)
+
+```bash
+_UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
+[ -n "$_UPD" ] && echo "$_UPD" || true
+mkdir -p ~/.gstack/sessions
+touch ~/.gstack/sessions/"$PPID"
+_SESSIONS=$(find ~/.gstack/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
+find ~/.gstack/sessions -mmin +120 -type f -delete 2>/dev/null || true
+_CONTRIB=$(~/.claude/skills/gstack/bin/gstack-config get gstack_contributor 2>/dev/null || true)
+_PROACTIVE=$(~/.claude/skills/gstack/bin/gstack-config get proactive 2>/dev/null || echo "true")
+_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+echo "BRANCH: $_BRANCH"
+echo "PROACTIVE: $_PROACTIVE"
+_LAKE_SEEN=$([ -f ~/.gstack/.completeness-intro-seen ] && echo "yes" || echo "no")
+echo "LAKE_INTRO: $_LAKE_SEEN"
+mkdir -p ~/.gstack/analytics
+echo '{"skill":"design-consultation","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> ~/.gstack/analytics/skill-usage.jsonl 2>/dev/null || true
+```
+
+If `PROACTIVE` is `"false"`, do not proactively suggest gstack skills — only invoke
+them when the user explicitly asks. The user opted out of proactive suggestions.
+
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+
+If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
+Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
+thing when AI makes the marginal cost near-zero. Read more: https://garryslist.org/posts/boil-the-ocean"
+Then offer to open the essay in their default browser:
+
+```bash
+open https://garryslist.org/posts/boil-the-ocean
+touch ~/.gstack/.completeness-intro-seen
+```
+
+Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
+
 ## AskUserQuestion Format
 
 **ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch, and the current plan/task. (1-2 sentences)
+1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
 2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** \`RECOMMENDATION: Choose [X] because [one-line reason]\`
-4. **Options:** Lettered options: \`A) ... B) ... C) ...\`
+3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
+4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
 
 Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
 
 Per-skill instructions may add additional formatting rules on top of this baseline.
 
+## Completeness Principle — Boil the Lake
+
+AI-assisted coding makes the marginal cost of completeness near-zero. When you present options:
+
+- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+gstack. "Good enough" is the wrong instinct when "complete" costs minutes more.
+- **Lake vs. ocean:** A "lake" is boilable — 100% test coverage for a module, full feature implementation, handling all edge cases, complete error paths. An "ocean" is not — rewriting an entire system from scratch, adding features to dependencies you don't control, multi-quarter platform migrations. Recommend boiling lakes. Flag oceans as out of scope.
+- **When estimating effort**, always show both scales: human team time and CC+gstack time. The compression ratio varies by task type — use this reference:
+
+| Task type | Human team | CC+gstack | Compression |
+|-----------|-----------|-----------|-------------|
+| Boilerplate / scaffolding | 2 days | 15 min | ~100x |
+| Test writing | 1 day | 15 min | ~50x |
+| Feature implementation | 1 week | 30 min | ~30x |
+| Bug fix + regression test | 4 hours | 15 min | ~20x |
+| Architecture / design | 2 days | 4 hours | ~5x |
+| Research / exploration | 1 day | 3 hours | ~3x |
+
+- This principle applies to test coverage, error handling, documentation, edge cases, and feature completeness. Don't skip the last 10% to "save time" — with AI, that 10% costs seconds.
+
+**Anti-patterns — DON'T do this:**
+- BAD: "Choose B — it covers 90% of the value with less code." (If A is only 70 lines more, choose A.)
+- BAD: "We can skip edge case handling to save time." (Edge case handling costs minutes with CC.)
+- BAD: "Let's defer test coverage to a follow-up PR." (Tests are the cheapest lake to boil.)
+- BAD: Quoting only human-team effort: "This would take 2 weeks." (Say: "2 weeks human / ~1 hour CC.")
+
+## Contributor Mode
+
+If `_CONTRIB` is `true`: you are in **contributor mode**. You're a gstack user who also helps make it better.
+
+**At the end of each major workflow step** (not after every single command), reflect on the gstack tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by gstack code or skill markdown — file a field report. Maybe our contributor will help make us better!
+
+**Calibration — this is the bar:** For example, `$B js "await fetch(...)"` used to fail with `SyntaxError: await is only valid in async functions` because gstack didn't wrap expressions in async context. Small, but the input was reasonable and gstack should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
+
+**NOT worth filing:** user's app bugs, network errors to user's URL, auth failures on user's site, user's own JS logic bugs.
+
+**To file:** write `~/.gstack/contributor-logs/{slug}.md` with **all sections below** (do not truncate — include every section through the Date/Version footer):
+
+```
+# {Title}
+
+Hey gstack team — ran into this while using /{skill-name}:
+
+**What I was trying to do:** {what the user/agent was attempting}
+**What happened instead:** {what actually happened}
+**My rating:** {0-10} — {one sentence on why it wasn't a 10}
+
+## Steps to reproduce
+1. {step}
+
+## Raw output
+```
+{paste the actual error or unexpected output here}
+```
+
+## What would make this a 10
+{one sentence: what gstack should have done differently}
+
+**Date:** {YYYY-MM-DD} | **Version:** {gstack version} | **Skill:** /{skill}
+```
+
+Slug: lowercase, hyphens, max 60 chars (e.g. `browse-js-no-await`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed gstack field report: {title}"
+
+## Completion Status Protocol
+
+When completing a skill workflow, report status using one of:
+- **DONE** — All steps completed successfully. Evidence provided for each claim.
+- **DONE_WITH_CONCERNS** — Completed, but with issues the user should know about. List each concern.
+- **BLOCKED** — Cannot proceed. State what is blocking and what was tried.
+- **NEEDS_CONTEXT** — Missing information required to continue. State exactly what you need.
+
+### Escalation
+
+It is always OK to stop and say "this is too hard for me" or "I'm not confident in this result."
+
+Bad work is worse than no work. You will not be penalized for escalating.
+- If you have attempted a task 3 times without success, STOP and escalate.
+- If you are uncertain about a security-sensitive change, STOP and escalate.
+- If the scope of work exceeds what you can verify, STOP and escalate.
+
+Escalation format:
+```
+STATUS: BLOCKED | NEEDS_CONTEXT
+REASON: [1-2 sentences]
+ATTEMPTED: [what you tried]
+RECOMMENDATION: [what the user should do next]
+```
+
 ## Serena Code Navigation (optional, reduces token usage)
 
-If Serena MCP tools are available (`mcp__serena__*`), prefer them for code lookup tasks.
-They provide symbol-level precision that avoids reading entire files.
+If Serena MCP tools are available, activate the project before exploring code:
 
-**Activation (run once at start):**
-Try `mcp__serena__activate_project` with the repo root path. If it succeeds, Serena
-is active. If it fails or the tool is unavailable, skip all Serena tools and use
-Grep + Read instead.
+1. Call `mcp__serena__activate_project` with the project root path
+2. Call `mcp__serena__get_symbols_overview` to understand file structure without reading entire files
+3. Use `mcp__serena__find_symbol` with `include_body=true` only for symbols you need to read
 
-**If activation succeeds but symbol lookups return empty results:** Run
-`mcp__serena__onboarding` once — Serena needs a one-time index build per project.
+| Instead of | Use |
+|------------|-----|
+| `grep -r`, `Grep` | `mcp__serena__search_for_pattern` |
+| `Glob` (for code files) | `mcp__serena__find_symbol` or `mcp__serena__get_symbols_overview` |
+| `Read` entire source files | `mcp__serena__get_symbols_overview` → `find_symbol(include_body=true)` |
+| Searching for functions/classes | `mcp__serena__find_symbol(name_path_pattern)` |
+| Finding usages/callers | `mcp__serena__find_referencing_symbols` |
 
-**When Serena is active, prefer these patterns:**
-
-| Task | Without Serena | With Serena |
-|------|---------------|-------------|
-| Understand file structure | Read the whole file | `get_symbols_overview` (~90% fewer tokens) |
-| Find where a symbol is used | Grep for name → Read each file | `find_referencing_symbols` (returns snippets only) |
-| Read a specific function | Read the whole file | `find_symbol` with `include_body=true` |
-| Search for a pattern | Grep | `search_for_pattern` (equivalent) |
-
-**Fallback rule:** If any Serena tool call fails, fall back to Grep + Read for that
-operation. Do not retry — switch immediately.
+Fall back to built-in tools for non-code files (JSON, YAML, .env), git operations, or when Serena is not activated.
 
 # /design-consultation: Your Design System, Built Together
 
@@ -89,17 +209,17 @@ cat package.json 2>/dev/null | head -20
 ls src/ app/ pages/ components/ 2>/dev/null | head -30
 ```
 
-Look for brainstorm output:
+Look for office-hours output:
 
 ```bash
-SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*[:/]\([^/]*/[^/]*\)\.git$|\1|;s|.*[:/]\([^/]*/[^/]*\)$|\1|' | tr '/' '-')
-ls ~/.gstack/projects/$SLUG/*brainstorm* 2>/dev/null | head -5
-ls .context/*brainstorm* .context/attachments/*brainstorm* 2>/dev/null | head -5
+SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*[:/]\([^/]*/[^/]*\)\.git$|\1|;s|.*[:/]\([^/]*/[^/]*\)$|\1|;s|/|-|g')
+ls ~/.gstack/projects/$SLUG/*office-hours* 2>/dev/null | head -5
+ls .context/*office-hours* .context/attachments/*office-hours* 2>/dev/null | head -5
 ```
 
-If brainstorm output exists, read it — the product context is pre-filled.
+If office-hours output exists, read it — the product context is pre-filled.
 
-If the codebase is empty and purpose is unclear, say: *"I don't have a clear picture of what you're building yet. Want to brainstorm first with `/brainstorm`? Once we know the product direction, we can set up the design system."*
+If the codebase is empty and purpose is unclear, say: *"I don't have a clear picture of what you're building yet. Want to explore first with `/office-hours`? Once we know the product direction, we can set up the design system."*
 
 ---
 
@@ -113,7 +233,7 @@ Ask the user a single question that covers everything you need to know. Pre-fill
 3. "Want me to research what top products in your space are doing for design, or should I work from my design knowledge?"
 4. **Explicitly say:** "At any point you can just drop into chat and we'll talk through anything — this isn't a rigid form, it's a conversation."
 
-If the README or brainstorm gives you enough context, pre-fill and confirm: *"From what I can see, this is [X] for [Y] in the [Z] space. Sound right? And would you like me to research competitors, or should I work from what I know?"*
+If the README or office-hours output gives you enough context, pre-fill and confirm: *"From what I can see, this is [X] for [Y] in the [Z] space. Sound right? And would you like me to research what's out there in this space, or should I work from what I know?"*
 
 ---
 
@@ -121,17 +241,19 @@ If the README or brainstorm gives you enough context, pre-fill and confirm: *"Fr
 
 If the user wants competitive research:
 
+**Step 1: Identify what's out there via WebSearch**
+
 Use WebSearch to find 5-10 products in their space. Search for:
 - "[product category] website design"
 - "[product category] best websites 2025"
 - "best [industry] web apps"
 
-For each competitor found, note: fonts used, color palette, layout approach, aesthetic direction.
+**Step 2: Synthesize findings**
 
-Summarize your findings conversationally:
-> "I looked at [competitors]. They tend toward [patterns] — lots of [common choices]. The opportunity to be distinctive is [gap]. Here's what I'd recommend based on this..."
+The goal of research is NOT to copy. It is to get in the ballpark — to understand the visual language users in this category already expect. This gives you the baseline. The interesting design work starts after you have the baseline: deciding where to follow conventions (so the product feels literate) and where to break from them (so the product is memorable).
 
-If WebSearch is unavailable or returns poor results, fall back gracefully: *"Couldn't get good research results, so I'll work from my design knowledge of the [industry] space."*
+Summarize conversationally:
+> "I looked at what's out there. Here's the landscape: they converge on [patterns]. Most of them feel [observation — e.g., interchangeable, polished but generic, etc.]. The opportunity to stand out is [gap]. Here's where I'd play it safe and where I'd take a risk..."
 
 If the user said no research, skip entirely and proceed to Phase 3 using your built-in design knowledge.
 
@@ -141,7 +263,7 @@ If the user said no research, skip entirely and proceed to Phase 3 using your bu
 
 This is the soul of the skill. Propose EVERYTHING as one coherent package.
 
-**AskUserQuestion Q2 — present the full proposal:**
+**AskUserQuestion Q2 — present the full proposal with SAFE/RISK breakdown:**
 
 ```
 Based on [product context] and [research findings / my design knowledge]:
@@ -156,12 +278,21 @@ MOTION: [approach] — [rationale]
 
 This system is coherent because [explain how choices reinforce each other].
 
-Want to adjust anything? You can drill into any section, or just tell me
-what feels off and I'll rework it. Or if this looks right, I'll generate
-a preview page so you can see the fonts and colors rendered.
+SAFE CHOICES (category baseline — your users expect these):
+  - [2-3 decisions that match category conventions, with rationale for playing safe]
+
+RISKS (where your product gets its own face):
+  - [2-3 deliberate departures from convention]
+  - For each risk: what it is, why it works, what you gain, what it costs
+
+The safe choices keep you literate in your category. The risks are where
+your product becomes memorable. Which risks appeal to you? Want to see
+different ones? Or adjust anything else?
 ```
 
-**Options:** A) Looks great — generate the preview page. B) I want to adjust [section]. C) Start over with a different direction. D) Skip the preview, just write DESIGN.md.
+The SAFE/RISK breakdown is critical. Design coherence is table stakes — every product in a category can be coherent and still look identical. The real question is: where do you take creative risks? The agent should always propose at least 2 risks, each with a clear rationale for why the risk is worth taking and what the user gives up. Risks might include: an unexpected typeface for the category, a bold accent color nobody else uses, tighter or looser spacing than the norm, a layout approach that breaks from convention, motion choices that add personality.
+
+**Options:** A) Looks great — generate the preview page. B) I want to adjust [section]. C) I want different risks — show me wilder options. D) Start over with a different direction. E) Skip the preview, just write DESIGN.md.
 
 ### Your Design Knowledge (use to inform proposals — do NOT display as tables)
 
@@ -251,7 +382,7 @@ The agent writes a **single, self-contained HTML file** (no framework dependenci
 1. **Loads proposed fonts** from Google Fonts (or Bunny Fonts) via `<link>` tags
 2. **Uses the proposed color palette** throughout — dogfood the design system
 3. **Shows the product name** (not "Lorem Ipsum") as the hero heading
-4. **Font comparison section:**
+4. **Font specimen section:**
    - Each font candidate shown in its proposed role (hero heading, body paragraph, button label, data table row)
    - Side-by-side comparison if multiple candidates for one role
    - Real content that matches the product (e.g., civic tech → government data examples)
@@ -259,11 +390,17 @@ The agent writes a **single, self-contained HTML file** (no framework dependenci
    - Swatches with hex values and names
    - Sample UI components rendered in the palette: buttons (primary, secondary, ghost), cards, form inputs, alerts (success, warning, error, info)
    - Background/text color combinations showing contrast
-6. **Light/dark mode toggle** using CSS custom properties and a JS toggle button
-7. **Clean, professional layout** — the preview page IS a taste signal for the skill
-8. **Responsive** — looks good on any screen width
+6. **Realistic product mockups** — this is what makes the preview page powerful. Based on the project type from Phase 1, render 2-3 realistic page layouts using the full design system:
+   - **Dashboard / web app:** sample data table with metrics, sidebar nav, header with user avatar, stat cards
+   - **Marketing site:** hero section with real copy, feature highlights, testimonial block, CTA
+   - **Settings / admin:** form with labeled inputs, toggle switches, dropdowns, save button
+   - **Auth / onboarding:** login form with social buttons, branding, input validation states
+   - Use the product name, realistic content for the domain, and the proposed spacing/layout/border-radius. The user should see their product (roughly) before writing any code.
+7. **Light/dark mode toggle** using CSS custom properties and a JS toggle button
+8. **Clean, professional layout** — the preview page IS a taste signal for the skill
+9. **Responsive** — looks good on any screen width
 
-The page should make the user think "oh nice, they thought of this." It's selling the design system visually, not just listing hex codes.
+The page should make the user think "oh nice, they thought of this." It's selling the design system by showing what the product could feel like, not just listing hex codes and font names.
 
 If `open` fails (headless environment), tell the user: *"I wrote the preview to [path] — open it in your browser to see the fonts and colors rendered."*
 

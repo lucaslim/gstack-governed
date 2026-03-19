@@ -5,7 +5,9 @@ model: sonnet
 description: |
   Post-ship documentation update. Reads all project docs, cross-references the
   diff, updates README/ARCHITECTURE/CONTRIBUTING/CLAUDE.md to match what shipped,
-  polishes CHANGELOG voice, cleans up TODOS, and optionally bumps VERSION.
+  polishes CHANGELOG voice, cleans up TODOS, and optionally bumps VERSION. Use when
+  asked to "update the docs", "sync documentation", or "post-ship docs".
+  Proactively suggest after a PR is merged or code is shipped.
 allowed-tools:
   - Bash
   - Read
@@ -76,8 +78,8 @@ find . -maxdepth 2 -name "*.md" -not -path "./.git/*" -not -path "./node_modules
 ```
 
 4. Classify the changes into categories relevant to documentation:
-   - **New features** — new files, new commands, new skills, new capabilities
-   - **Changed behavior** — modified services, updated APIs, config changes
+   - **New features** — new files, new commands, new hooks, new capabilities
+   - **Changed behavior** — modified components, updated APIs, config changes
    - **Removed functionality** — deleted files, removed commands
    - **Infrastructure** — build system, test infrastructure, CI
 
