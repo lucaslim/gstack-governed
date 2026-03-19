@@ -208,10 +208,57 @@ describe('Generated SKILL.md freshness', () => {
   });
 });
 
-// --- Update check preamble validation ---
+// --- Preamble session awareness & escalation validation ---
 
-// Update check preamble tests removed — governed fork strips _UPD/update check logic.
-// The governed preamble contains only the AskUserQuestion format block.
+describe('Preamble session awareness', () => {
+  const skillsWithPreamble = [
+    'SKILL.md', 'browse/SKILL.md', 'qa/SKILL.md',
+    'qa-only/SKILL.md',
+    'setup-browser-cookies/SKILL.md',
+    'ship/SKILL.md', 'review/SKILL.md',
+    'plan-ceo-review/SKILL.md', 'plan-eng-review/SKILL.md',
+    'retro/SKILL.md',
+    'office-hours/SKILL.md', 'debug/SKILL.md',
+    'plan-design-review/SKILL.md',
+    'design-review/SKILL.md',
+    'design-consultation/SKILL.md',
+    'document-release/SKILL.md',
+  ];
+
+  for (const skill of skillsWithPreamble) {
+    test(`${skill} has session tracking`, () => {
+      const content = fs.readFileSync(path.join(ROOT, skill), 'utf-8');
+      expect(content).toContain('_SESSIONS');
+    });
+  }
+});
+
+describe('Preamble escalation protocol', () => {
+  const skillsWithPreamble = [
+    'SKILL.md', 'browse/SKILL.md', 'qa/SKILL.md',
+    'qa-only/SKILL.md',
+    'setup-browser-cookies/SKILL.md',
+    'ship/SKILL.md', 'review/SKILL.md',
+    'plan-ceo-review/SKILL.md', 'plan-eng-review/SKILL.md',
+    'retro/SKILL.md',
+    'office-hours/SKILL.md', 'debug/SKILL.md',
+    'plan-design-review/SKILL.md',
+    'design-review/SKILL.md',
+    'design-consultation/SKILL.md',
+    'document-release/SKILL.md',
+  ];
+
+  for (const skill of skillsWithPreamble) {
+    test(`${skill} has escalation protocol`, () => {
+      const content = fs.readFileSync(path.join(ROOT, skill), 'utf-8');
+      expect(content).toContain('Escalation');
+      expect(content).toContain('BLOCKED');
+    });
+  }
+});
+
+// --- Update check preamble validation ---
+// Update check tests removed — governed fork strips _UPD/update check logic.
 
 // --- Part 7: Cross-skill path consistency (A1) ---
 // Cross-skill path consistency tests removed — governed fork does not have Greptile integration or REMOTE_SLUG.
@@ -556,7 +603,30 @@ describe('Enum & Value Completeness in review checklist', () => {
 });
 
 // --- Completeness Principle spot-check ---
-// Completeness Principle tests removed — governed fork strips this from the preamble.
+
+describe('Completeness Principle in preamble', () => {
+  const skillsWithPreamble = [
+    'SKILL.md', 'browse/SKILL.md', 'qa/SKILL.md',
+    'qa-only/SKILL.md',
+    'setup-browser-cookies/SKILL.md',
+    'ship/SKILL.md', 'review/SKILL.md',
+    'plan-ceo-review/SKILL.md', 'plan-eng-review/SKILL.md',
+    'retro/SKILL.md',
+    'office-hours/SKILL.md', 'debug/SKILL.md',
+    'plan-design-review/SKILL.md',
+    'design-review/SKILL.md',
+    'design-consultation/SKILL.md',
+    'document-release/SKILL.md',
+  ];
+
+  for (const skill of skillsWithPreamble) {
+    test(`${skill} has Completeness Principle`, () => {
+      const content = fs.readFileSync(path.join(ROOT, skill), 'utf-8');
+      expect(content).toContain('Completeness Principle');
+      expect(content).toContain('Boil the Lake');
+    });
+  }
+});
 
 // --- Part 7: Planted-bug fixture validation (A4) ---
 

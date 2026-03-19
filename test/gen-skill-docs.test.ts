@@ -68,7 +68,7 @@ describe('gen-skill-docs', () => {
     { dir: 'plan-eng-review', name: 'plan-eng-review' },
     { dir: 'retro', name: 'retro' },
     { dir: 'setup-browser-cookies', name: 'setup-browser-cookies' },
-{ dir: 'plan-design-review', name: 'plan-design-review' },
+    { dir: 'plan-design-review', name: 'plan-design-review' },
     { dir: 'design-review', name: 'design-review' },
     { dir: 'design-consultation', name: 'design-consultation' },
     { dir: 'document-release', name: 'document-release' },
@@ -139,8 +139,17 @@ describe('gen-skill-docs', () => {
     expect(browseTmpl).toContain('{{PREAMBLE}}');
   });
 
-  // Contributor mode, session awareness, and branch detection tests removed —
-  // governed fork strips these from the preamble (only AskUserQuestion format remains).
+  test('preamble includes session awareness', () => {
+    const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
+    expect(content).toContain('_SESSIONS');
+    expect(content).toContain('~/.gstack/sessions');
+  });
+
+  test('preamble includes branch detection', () => {
+    const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
+    expect(content).toContain('_BRANCH');
+    expect(content).toContain('git branch --show-current');
+  });
 
   test('generated SKILL.md contains ELI16 simplification rules', () => {
     const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');

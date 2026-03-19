@@ -137,24 +137,22 @@ Use Serena's symbolic tools to inspect the generator efficiently:
 The generator is `scripts/gen-skill-docs.ts`. The `generatePreamble()` function controls
 what the `PREAMBLE` placeholder resolves to in every template.
 
-**Verify `generatePreamble()` returns only this** (fix if the merge reintroduced upstream content):
+**Verify `generatePreamble()` contains everything from upstream EXCEPT:**
+- The `_UPD` line (`gstack-update-check`)
+- The `UPGRADE_AVAILABLE` handling paragraph
+- The `_CONTRIB` line (`gstack-config get gstack_contributor`)
+- The entire "Contributor Mode" section (field reports, calibration, etc.)
 
-```
-## AskUserQuestion Format
+**Keep (must be present):**
+- Session tracking (`_SESSIONS`), branch detection (`_BRANCH`), lake intro (`_LAKE_SEEN`)
+- Lake intro (one-time Completeness Principle introduction with `open` offer)
+- AskUserQuestion format (upstream's enhanced version with completeness scoring, dual time estimates, `_BRANCH` reference)
+- Completeness Principle section (lake vs ocean, compression table, anti-patterns)
+- Completion Status Protocol (DONE/DONE_WITH_CONCERNS/BLOCKED/NEEDS_CONTEXT)
+- Escalation section
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch, and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]`
-4. **Options:** Lettered options: `A) ... B) ... C) ...`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.
-```
-
-If `generatePreamble()` already matches this (no update check, no session tracking, no
-contributor mode), skip this step — upstream may have adopted the same trim.
+If the rebase reintroduced `_UPD`, `_CONTRIB`, or Contributor Mode, remove those lines/sections.
+If the rebase stripped session tracking or Completeness Principle, restore them from upstream.
 
 Also check `generateQAMethodology()` in the same file. If upstream re-added a `### Rails`
 framework subsection, remove it. Ensure `### General SPA (React, Vue, Angular)` is present
@@ -165,11 +163,10 @@ content (e.g. `.gstack/` paths, Rails view references). If clean, leave it as-is
 
 **Verification:**
 ```bash
-grep -n '_UPD=\|UPGRADE_AVAILABLE\|Contributor Mode\|session_id\|### Rails' scripts/gen-skill-docs.ts
+grep -n '_UPD=\|UPGRADE_AVAILABLE\|Contributor Mode\|gstack_contributor' scripts/gen-skill-docs.ts
 ```
 
-If matches are found inside `generatePreamble()` or `generateQAMethodology()`, the trim is
-incomplete.
+This should return empty. If matches are found, the trim is incomplete.
 
 ### Step 4 — Verify and fix React/TS template adaptations
 
@@ -448,7 +445,7 @@ All skills and their sync treatment:
 
 | Skill | Template | Adaptation |
 |-------|----------|------------|
-| gstack (root) | SKILL.md.tmpl | Preamble trim via generator; .gstack/ → .local-context/ |
+| gstack (root) | SKILL.md.tmpl | Preamble: strip update check + contributor mode only; .gstack/ → .local-context/ |
 | browse | browse/SKILL.md.tmpl | Preamble trim via generator; .gstack/ → .local-context/ |
 | ship | ship/SKILL.md.tmpl | Remove VERSION/CHANGELOG/eval/TODOS; React/TS vocab; test cmds |
 | review | review/SKILL.md.tmpl | ActiveRecord → GraphQL; Models/Controllers → Components/Hooks |
