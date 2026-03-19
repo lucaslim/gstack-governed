@@ -8,8 +8,8 @@
  *   Auto-shutdown after BROWSE_IDLE_TIMEOUT (default 30 min)
  *
  * State:
- *   State file: <project-root>/.gstack/browse.json (set via BROWSE_STATE_FILE env)
- *   Log files:  <project-root>/.gstack/browse-{console,network,dialog}.log
+ *   State file: <project-root>/.local-context/browse.json (set via BROWSE_STATE_FILE env)
+ *   Log files:  <project-root>/.local-context/browse-{console,network,dialog}.log
  *   Port:       random 10000-60000 (or BROWSE_PORT env for debug override)
  */
 
@@ -104,7 +104,7 @@ async function flushBuffers() {
       const lines = entries.map(e =>
         `[${new Date(e.timestamp).toISOString()}] [${e.level}] ${e.text}`
       ).join('\n') + '\n';
-      fs.appendFileSync(CONSOLE_LOG_PATH, lines);
+      await Bun.write(CONSOLE_LOG_PATH, (await Bun.file(CONSOLE_LOG_PATH).text().catch(() => '')) + lines);
       lastConsoleFlushed = consoleBuffer.totalAdded;
     }
 
@@ -115,7 +115,7 @@ async function flushBuffers() {
       const lines = entries.map(e =>
         `[${new Date(e.timestamp).toISOString()}] ${e.method} ${e.url} → ${e.status || 'pending'} (${e.duration || '?'}ms, ${e.size || '?'}B)`
       ).join('\n') + '\n';
-      fs.appendFileSync(NETWORK_LOG_PATH, lines);
+      await Bun.write(NETWORK_LOG_PATH, (await Bun.file(NETWORK_LOG_PATH).text().catch(() => '')) + lines);
       lastNetworkFlushed = networkBuffer.totalAdded;
     }
 
@@ -126,7 +126,7 @@ async function flushBuffers() {
       const lines = entries.map(e =>
         `[${new Date(e.timestamp).toISOString()}] [${e.type}] "${e.message}" → ${e.action}${e.response ? ` "${e.response}"` : ''}`
       ).join('\n') + '\n';
-      fs.appendFileSync(DIALOG_LOG_PATH, lines);
+      await Bun.write(DIALOG_LOG_PATH, (await Bun.file(DIALOG_LOG_PATH).text().catch(() => '')) + lines);
       lastDialogFlushed = dialogBuffer.totalAdded;
     }
   } catch {

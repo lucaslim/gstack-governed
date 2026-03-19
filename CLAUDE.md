@@ -188,6 +188,12 @@ regenerated SKILL.md shifts prompt context.
 
 "Pre-existing" without receipts is a lazy claim. Prove it or don't say it.
 
+## GitHub remote
+
+This repo is a fork (`lucaslim/gstack-governed`) of `garrytan/gstack`. When creating
+PRs, **always target the fork** — use `--repo lucaslim/gstack-governed` with `gh pr create`.
+Never create PRs against the upstream `garrytan/gstack` repo.
+
 ## Deploying to the active skill
 
 The active skill lives at `~/.claude/skills/gstack/`. After making changes:

@@ -1,7 +1,7 @@
 ---
 name: design-consultation
 version: 1.0.0
-model: sonnet
+model: opus
 description: |
   Design consultation: understands your product, researches the landscape, proposes a
   complete design system (aesthetic, typography, color, layout, spacing, motion), and
@@ -17,9 +17,16 @@ allowed-tools:
   - Grep
   - AskUserQuestion
   - WebSearch
+  - mcp__serena__activate_project
+  - mcp__serena__get_symbols_overview
+  - mcp__serena__find_symbol
+  - mcp__serena__find_referencing_symbols
+  - mcp__serena__search_for_pattern
 ---
 
 {{PREAMBLE}}
+
+{{SERENA_SETUP}}
 
 # /design-consultation: Your Design System, Built Together
 

@@ -15,7 +15,7 @@
  *   restores state. Falls back to clean slate on any failure.
  */
 
-import { chromium, type Browser, type BrowserContext, type BrowserContextOptions, type Page, type Locator } from 'playwright';
+import { chromium, type Browser, type BrowserContext, type Page, type Locator } from 'playwright';
 import { addConsoleEntry, addNetworkEntry, addDialogEntry, networkBuffer, type DialogEntry } from './buffers';
 
 export interface RefEntry {
@@ -53,11 +53,11 @@ export class BrowserManager {
     // Chromium crash → exit with clear message
     this.browser.on('disconnected', () => {
       console.error('[browse] FATAL: Chromium process crashed or was killed. Server exiting.');
-      console.error('[browse] Console/network logs flushed to .gstack/browse-*.log');
+      console.error('[browse] Console/network logs flushed to .local-context/browse-*.log');
       process.exit(1);
     });
 
-    const contextOptions: BrowserContextOptions = {
+    const contextOptions: any = {
       viewport: { width: 1280, height: 720 },
     };
     if (this.customUserAgent) {
@@ -282,7 +282,7 @@ export class BrowserManager {
     try {
       // 1. Save state from current context
       const savedCookies = await this.context.cookies();
-      const savedPages: Array<{ url: string; isActive: boolean; storage: { localStorage: Record<string, string>; sessionStorage: Record<string, string> } | null }> = [];
+      const savedPages: Array<{ url: string; isActive: boolean; storage: any }> = [];
 
       for (const [id, page] of this.pages) {
         const url = page.url();
@@ -308,7 +308,7 @@ export class BrowserManager {
       await this.context.close().catch(() => {});
 
       // 3. Create new context with updated settings
-      const contextOptions: BrowserContextOptions = {
+      const contextOptions: any = {
         viewport: { width: 1280, height: 720 },
       };
       if (this.customUserAgent) {
@@ -340,15 +340,15 @@ export class BrowserManager {
         // 6. Restore storage
         if (saved.storage) {
           try {
-            await page.evaluate((s: { localStorage: Record<string, string>; sessionStorage: Record<string, string> }) => {
+            await page.evaluate((s: any) => {
               if (s.localStorage) {
                 for (const [k, v] of Object.entries(s.localStorage)) {
-                  localStorage.setItem(k, v);
+                  localStorage.setItem(k, v as string);
                 }
               }
               if (s.sessionStorage) {
                 for (const [k, v] of Object.entries(s.sessionStorage)) {
-                  sessionStorage.setItem(k, v);
+                  sessionStorage.setItem(k, v as string);
                 }
               }
             }, saved.storage);
@@ -369,13 +369,13 @@ export class BrowserManager {
       this.clearRefs();
 
       return null; // success
-    } catch (err: unknown) {
+    } catch (err: any) {
       // Fallback: create a clean context + blank tab
       try {
         this.pages.clear();
         if (this.context) await this.context.close().catch(() => {});
 
-        const contextOptions: BrowserContextOptions = {
+        const contextOptions: any = {
           viewport: { width: 1280, height: 720 },
         };
         if (this.customUserAgent) {
@@ -387,7 +387,7 @@ export class BrowserManager {
       } catch {
         // If even the fallback fails, we're in trouble — but browser is still alive
       }
-      return `Context recreation failed: ${err instanceof Error ? err.message : String(err)}. Browser reset to blank tab.`;
+      return `Context recreation failed: ${err.message}. Browser reset to blank tab.`;
     }
   }
 
