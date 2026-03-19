@@ -20,6 +20,44 @@ Now edit any `SKILL.md`, invoke it in Claude Code (e.g. `/review`), and see your
 bin/dev-teardown               # deactivate — back to your global install
 ```
 
+## Contributor mode
+
+Contributor mode turns gstack into a self-improving tool. Enable it and Claude Code
+will periodically reflect on its gstack experience — rating it 0-10 at the end of
+each major workflow step. When something isn't a 10, it thinks about why and files
+a report to `~/.gstack/contributor-logs/` with what happened, repro steps, and what
+would make it better.
+
+```bash
+~/.claude/skills/gstack/bin/gstack-config set gstack_contributor true
+```
+
+The logs are for **you**. When something bugs you enough to fix, the report is
+already written. Fork gstack, symlink your fork into the project where you hit
+the issue, fix it, and open a PR.
+
+### The contributor workflow
+
+1. **Use gstack normally** — contributor mode reflects and logs issues automatically
+2. **Check your logs:** `ls ~/.gstack/contributor-logs/`
+3. **Fork and clone gstack** (if you haven't already)
+4. **Symlink your fork into the project where you hit the bug:**
+   ```bash
+   # In your core project (the one where gstack annoyed you)
+   ln -sfn /path/to/your/gstack-fork .claude/skills/gstack
+   cd .claude/skills/gstack && bun install && bun run build
+   ```
+5. **Fix the issue** — your changes are live immediately in this project
+6. **Test by actually using gstack** — do the thing that annoyed you, verify it's fixed
+7. **Open a PR from your fork**
+
+This is the best way to contribute: fix gstack while doing your real work, in the
+project where you actually felt the pain.
+
+### Session awareness
+
+When you have 3+ gstack sessions open simultaneously, every question tells you which project, which branch, and what's happening. No more staring at a question thinking "wait, which window is this?" The format is consistent across all 15 skills.
+
 ## Working on gstack inside the gstack repo
 
 When you're editing gstack skills and want to test them by actually using gstack
@@ -257,4 +295,4 @@ When you're happy with your skill edits:
 /ship
 ```
 
-This runs tests, reviews the diff, manages TODOS.md, bumps the version, and opens a PR. See `ship/SKILL.md` for the full workflow.
+This runs tests, reviews the diff, triages Greptile comments (with 2-tier escalation), manages TODOS.md, bumps the version, and opens a PR. See `ship/SKILL.md` for the full workflow.
