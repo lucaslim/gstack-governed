@@ -1,6 +1,7 @@
 ---
 name: plan-design-review
 version: 2.0.0
+model: opus
 description: |
   Designer's eye plan review — interactive, like CEO and Eng review.
   Rates each design dimension 0-10, explains what would make it a 10,
@@ -16,6 +17,11 @@ allowed-tools:
   - Glob
   - Bash
   - AskUserQuestion
+  - mcp__serena__activate_project
+  - mcp__serena__get_symbols_overview
+  - mcp__serena__find_symbol
+  - mcp__serena__find_referencing_symbols
+  - mcp__serena__search_for_pattern
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -155,6 +161,24 @@ REASON: [1-2 sentences]
 ATTEMPTED: [what you tried]
 RECOMMENDATION: [what the user should do next]
 ```
+
+## Serena Code Navigation (optional, reduces token usage)
+
+If Serena MCP tools are available, activate the project before code exploration:
+
+1. Run `mcp__serena__activate_project` with the project root path
+2. Run `mcp__serena__check_onboarding_performed` — if not onboarded, run `mcp__serena__onboarding`
+3. Use Serena tools for code navigation:
+
+| Instead of | Use |
+|------------|-----|
+| `grep -r`, `Grep` | `mcp__serena__search_for_pattern` |
+| `find`, `Glob` (for code) | `mcp__serena__find_file` |
+| Reading entire source files | `mcp__serena__get_symbols_overview` → `find_symbol(include_body=true)` |
+| Searching for functions/classes | `mcp__serena__find_symbol(name_path_pattern)` |
+| Finding usages/callers | `mcp__serena__find_referencing_symbols` |
+
+Fall back to built-in tools for non-code files (JSON, YAML, .env) or when Serena is not activated.
 
 ## Step 0: Detect base branch
 

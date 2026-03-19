@@ -1,6 +1,7 @@
 ---
 name: retro
 version: 2.0.0
+model: sonnet
 description: |
   Weekly engineering retrospective. Analyzes commit history, work patterns,
   and code quality metrics with persistent history and trend tracking.
@@ -233,19 +234,16 @@ git log origin/<default> --since="<window>" --format="AUTHOR:%aN" --name-only
 # 7. Per-author commit counts (quick summary)
 git shortlog origin/<default> --since="<window>" -sn --no-merges
 
-# 8. Greptile triage history (if available)
-cat ~/.gstack/greptile-history.md 2>/dev/null || true
-
-# 9. TODOS.md backlog (if available)
+# 8. TODOS.md backlog (if available)
 cat TODOS.md 2>/dev/null || true
 
-# 10. Test file count
+# 9. Test file count
 find . -name '*.test.*' -o -name '*.spec.*' -o -name '*_test.*' -o -name '*_spec.*' 2>/dev/null | grep -v node_modules | wc -l
 
-# 11. Regression test commits in window
+# 10. Regression test commits in window
 git log origin/<default> --since="<window>" --oneline --grep="test(qa):" --grep="test(design):" --grep="test: coverage"
 
-# 12. Test files changed in window
+# 11. Test files changed in window
 git log origin/<default> --since="<window>" --format="" --name-only | grep -E '\.(test|spec)\.' | sort -u | wc -l
 ```
 
@@ -267,7 +265,6 @@ Calculate and present these metrics in a summary table:
 | Active days | N |
 | Detected sessions | N |
 | Avg LOC/session-hour | N |
-| Greptile signal | N% (Y catches, Z FPs) |
 | Test Health | N total tests · M added this period · K regression tests |
 
 Then show a **per-author leaderboard** immediately below:
@@ -275,15 +272,13 @@ Then show a **per-author leaderboard** immediately below:
 ```
 Contributor         Commits   +/-          Top area
 You (garry)              32   +2400/-300   browse/
-alice                    12   +800/-150    app/services/
+alice                    12   +800/-150    src/components/
 bob                       3   +120/-40     tests/
 ```
 
 Sort by commits descending. The current user (from `git config user.name`) always appears first, labeled "You (name)".
 
-**Greptile signal (if history exists):** Read `~/.gstack/greptile-history.md` (fetched in Step 1, command 8). Filter entries within the retro time window by date. Count entries by type: `fix`, `fp`, `already-fixed`. Compute signal ratio: `(fix + already-fixed) / (fix + already-fixed + fp)`. If no entries exist in the window or the file doesn't exist, skip the Greptile metric row. Skip unparseable lines silently.
-
-**Backlog Health (if TODOS.md exists):** Read `TODOS.md` (fetched in Step 1, command 9). Compute:
+**Backlog Health (if TODOS.md exists):** Read `TODOS.md` (fetched in Step 1, command 8). Compute:
 - Total open TODOs (exclude items in `## Completed` section)
 - P0/P1 count (critical/urgent items)
 - P2 count (important items)
@@ -368,7 +363,7 @@ From commit diffs, estimate PR sizes and bucket them:
 
 ### Step 8: Focus Score + Ship of the Week
 
-**Focus score:** Calculate the percentage of commits touching the single most-changed top-level directory (e.g., `app/services/`, `app/views/`). Higher score = deeper focused work. Lower score = scattered context-switching. Report as: "Focus score: 62% (app/services/)"
+**Focus score:** Calculate the percentage of commits touching the single most-changed top-level directory (e.g., `src/components/`, `src/hooks/`). Higher score = deeper focused work. Lower score = scattered context-switching. Report as: "Focus score: 62% (src/components/)"
 
 **Ship of the week:** Auto-identify the single highest-LOC PR in the window. Highlight it:
 - PR number and title
@@ -486,21 +481,15 @@ Use the Write tool to save the JSON file with this schema:
   },
   "authors": {
     "Garry Tan": { "commits": 32, "insertions": 2400, "deletions": 300, "test_ratio": 0.41, "top_area": "browse/" },
-    "Alice": { "commits": 12, "insertions": 800, "deletions": 150, "test_ratio": 0.35, "top_area": "app/services/" }
+    "Alice": { "commits": 12, "insertions": 800, "deletions": 150, "test_ratio": 0.35, "top_area": "src/components/" }
   },
   "version_range": ["1.16.0.0", "1.16.1.0"],
   "streak_days": 47,
-  "tweetable": "Week of Mar 1: 47 commits (3 contributors), 3.2k LOC, 38% tests, 12 PRs, peak: 10pm",
-  "greptile": {
-    "fixes": 3,
-    "fps": 1,
-    "already_fixed": 2,
-    "signal_pct": 83
-  }
+  "tweetable": "Week of Mar 1: 47 commits (3 contributors), 3.2k LOC, 38% tests, 12 PRs, peak: 10pm"
 }
 ```
 
-**Note:** Only include the `greptile` field if `~/.gstack/greptile-history.md` exists and has entries within the time window. Only include the `backlog` field if `TODOS.md` exists. Only include the `test_health` field if test files were found (command 10 returns > 0). If any has no data, omit the field entirely.
+**Note:** Only include the `backlog` field if `TODOS.md` exists. Only include the `test_health` field if test files were found (command 9 returns > 0). If any has no data, omit the field entirely.
 
 Include test health data in the JSON when test files exist:
 ```json
@@ -564,12 +553,11 @@ Narrative covering:
 - Test LOC ratio trend
 - Hotspot analysis (are the same files churning?)
 - Any XL PRs that should have been split
-- Greptile signal ratio and trend (if history exists): "Greptile: X% signal (Y valid catches, Z false positives)"
 
 ### Test Health
-- Total test files: N (from command 10)
-- Tests added this period: M (from command 12 — test files changed)
-- Regression test commits: list `test(qa):` and `test(design):` and `test: coverage` commits from command 11
+- Total test files: N (from command 9)
+- Tests added this period: M (from command 11 — test files changed)
+- Regression test commits: list `test(qa):` and `test(design):` and `test: coverage` commits from command 10
 - If prior retro exists and has `test_health`: show delta "Test count: {last} → {now} (+{delta})"
 - If test ratio < 20%: flag as growth area — "100% test coverage is the goal. Tests make vibe coding safe."
 
@@ -599,7 +587,7 @@ For each teammate (sorted by commits descending), write a section:
 - **Praise**: 1-2 specific things they did well, anchored in actual commits. Be genuine — what would you actually say in a 1:1? Examples:
   - "Cleaned up the entire auth module in 3 small, reviewable PRs — textbook decomposition"
   - "Added integration tests for every new endpoint, not just happy paths"
-  - "Fixed the N+1 query that was causing 2s load times on the dashboard"
+  - "Fixed the waterfall request chain that was causing 2s load times on the dashboard"
 - **Opportunity for growth**: 1 specific, constructive suggestion. Frame as investment, not criticism. Examples:
   - "Test coverage on the payment module is at 8% — worth investing in before the next feature lands on top of it"
   - "3 of the 5 PRs were 800+ LOC — breaking these up would catch issues earlier and make review easier"

@@ -1,6 +1,7 @@
 ---
 name: qa
 version: 2.0.0
+model: sonnet
 description: |
   Systematically QA test a web application and fix bugs found. Runs QA testing,
   then iteratively fixes bugs in source code, committing each fix atomically and
@@ -18,6 +19,11 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
+  - mcp__serena__activate_project
+  - mcp__serena__get_symbols_overview
+  - mcp__serena__find_symbol
+  - mcp__serena__find_referencing_symbols
+  - mcp__serena__search_for_pattern
   - WebSearch
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
@@ -159,6 +165,31 @@ ATTEMPTED: [what you tried]
 RECOMMENDATION: [what the user should do next]
 ```
 
+## Serena Code Navigation (optional, reduces token usage)
+
+If Serena MCP tools are available (`mcp__serena__*`), prefer them for code lookup tasks.
+They provide symbol-level precision that avoids reading entire files.
+
+**Activation (run once at start):**
+Try `mcp__serena__activate_project` with the repo root path. If it succeeds, Serena
+is active. If it fails or the tool is unavailable, skip all Serena tools and use
+Grep + Read instead.
+
+**If activation succeeds but symbol lookups return empty results:** Run
+`mcp__serena__onboarding` once — Serena needs a one-time index build per project.
+
+**When Serena is active, prefer these patterns:**
+
+| Task | Without Serena | With Serena |
+|------|---------------|-------------|
+| Understand file structure | Read the whole file | `get_symbols_overview` (~90% fewer tokens) |
+| Find where a symbol is used | Grep for name → Read each file | `find_referencing_symbols` (returns snippets only) |
+| Read a specific function | Read the whole file | `find_symbol` with `include_body=true` |
+| Search for a pattern | Grep | `search_for_pattern` (equivalent) |
+
+**Fallback rule:** If any Serena tool call fails, fall back to Grep + Read for that
+operation. Do not retry — switch immediately.
+
 ## Step 0: Detect base branch
 
 Determine which branch this PR targets. Use the result as "the base branch" in all subsequent steps.
@@ -190,8 +221,8 @@ You are a QA engineer AND a bug-fix engineer. Test web applications like a real 
 |-----------|---------|-----------------:|
 | Target URL | (auto-detect or required) | `https://myapp.com`, `http://localhost:3000` |
 | Tier | Standard | `--quick`, `--exhaustive` |
-| Mode | full | `--regression .gstack/qa-reports/baseline.json` |
-| Output dir | `.gstack/qa-reports/` | `Output to /tmp/qa` |
+| Mode | full | `--regression .local-context/qa-reports/baseline.json` |
+| Output dir | `.local-context/qa-reports/` | `Output to /tmp/qa` |
 | Scope | Full app (or diff-scoped) | `Focus on the billing page` |
 | Auth | None | `Sign in to user@example.com`, `Import cookies from cookies.json` |
 
@@ -399,7 +430,7 @@ Only commit if there are changes. Stage all bootstrap files (config, test direct
 **Create output directories:**
 
 ```bash
-mkdir -p .gstack/qa-reports/screenshots
+mkdir -p .local-context/qa-reports/screenshots
 ```
 
 ---
@@ -410,7 +441,7 @@ Before falling back to git diff heuristics, check for richer test plan sources:
 
 1. **Project-scoped test plans:** Check `~/.gstack/projects/` for recent `*-test-plan-*.md` files for this repo
    ```bash
-   source <(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
+   SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*[:/]||;s|\.git$||')
    ls -t ~/.gstack/projects/$SLUG/*-test-plan-*.md 2>/dev/null | head -1
    ```
 2. **Conversation context:** Check if a prior `/plan-eng-review` or `/plan-ceo-review` produced test plan output in this conversation
@@ -705,7 +736,7 @@ Record baseline health score at end of Phase 6.
 ## Output Structure
 
 ```
-.gstack/qa-reports/
+.local-context/qa-reports/
 ├── qa-report-{domain}-{YYYY-MM-DD}.md    # Structured report
 ├── screenshots/
 │   ├── initial.png                        # Landing page annotated screenshot
@@ -810,7 +841,7 @@ The test MUST:
   ```
   // Regression: ISSUE-NNN — {what broke}
   // Found by /qa on {YYYY-MM-DD}
-  // Report: .gstack/qa-reports/qa-report-{domain}-{date}.md
+  // Report: .local-context/qa-reports/qa-report-{domain}-{date}.md
   ```
 
 Test type decision:
@@ -819,7 +850,7 @@ Test type decision:
 - Visual bug with JS behavior (broken dropdown, animation) → component test
 - Pure CSS → skip (caught by QA reruns)
 
-Generate unit tests. Mock all external dependencies (DB, API, Redis, file system).
+Generate unit tests. Mock all external dependencies (API, GraphQL, browser APIs, localStorage).
 
 Use auto-incrementing names to avoid collisions: check existing `{name}.regression-*.test.{ext}` files, take max number + 1.
 
@@ -870,11 +901,11 @@ After all fixes are applied:
 
 Write the report to both local and project-scoped locations:
 
-**Local:** `.gstack/qa-reports/qa-report-{domain}-{YYYY-MM-DD}.md`
+**Local:** `.local-context/qa-reports/qa-report-{domain}-{YYYY-MM-DD}.md`
 
 **Project-scoped:** Write test outcome artifact for cross-session context:
 ```bash
-source <(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null) && mkdir -p ~/.gstack/projects/$SLUG
+SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*[:/]||;s|\.git$||') && mkdir -p ~/.gstack/projects/$SLUG
 ```
 Write to `~/.gstack/projects/{slug}/{user}-{branch}-test-outcome-{datetime}.md`
 

@@ -1,6 +1,7 @@
 ---
 name: plan-ceo-review
 version: 1.0.0
+model: opus
 description: |
   CEO/founder-mode plan review. Rethink the problem, find the 10-star product,
   challenge premises, expand scope when it creates a better product. Four modes:
@@ -16,6 +17,11 @@ allowed-tools:
   - Glob
   - Bash
   - AskUserQuestion
+  - mcp__serena__activate_project
+  - mcp__serena__get_symbols_overview
+  - mcp__serena__find_symbol
+  - mcp__serena__find_referencing_symbols
+  - mcp__serena__search_for_pattern
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -156,6 +162,21 @@ ATTEMPTED: [what you tried]
 RECOMMENDATION: [what the user should do next]
 ```
 
+## Serena Code Navigation (optional, reduces token usage)
+
+If Serena is available and activated for this project, prefer Serena's semantic tools over built-in alternatives for code exploration:
+
+| Instead of | Use |
+|------------|-----|
+| `grep -r`, `Grep` | `mcp__serena__search_for_pattern` |
+| `find`, `Glob` (for code) | `mcp__serena__find_file` |
+| `Read` entire source files | `mcp__serena__get_symbols_overview` → `find_symbol(include_body=true)` |
+| Searching for functions/classes | `mcp__serena__find_symbol(name_path_pattern)` |
+| Finding usages/callers | `mcp__serena__find_referencing_symbols` |
+
+To activate: run `mcp__serena__activate_project` if Serena is available but not yet activated.
+Fall back to built-in tools for non-code files (JSON, YAML, .env) or when Serena is not available.
+
 ## Step 0: Detect base branch
 
 Determine which branch this PR targets. Use the result as "the base branch" in all subsequent steps.
@@ -190,8 +211,8 @@ Do NOT make any code changes. Do NOT start implementation. Your only job right n
 
 ## Prime Directives
 1. Zero silent failures. Every failure mode must be visible — to the system, to the team, to the user. If a failure can happen silently, that is a critical defect in the plan.
-2. Every error has a name. Don't say "handle errors." Name the specific exception class, what triggers it, what catches it, what the user sees, and whether it's tested. Catch-all error handling (e.g., catch Exception, rescue StandardError, except Exception) is a code smell — call it out.
-3. Data flows have shadow paths. Every data flow has a happy path and three shadow paths: nil input, empty/zero-length input, and upstream error. Trace all four for every new flow.
+2. Every error has a name. Don't say "handle errors." Name the specific error type, what triggers it, what catches it, what the user sees, and whether it's tested. Catch-all error handling (e.g., `catch (error)` with no `instanceof` narrowing, bare `catch (e)` without specific error type checks) is a code smell — call it out.
+3. Data flows have shadow paths. Every data flow has a happy path and three shadow paths: null/undefined input, empty/zero-length input, and upstream error. Trace all four for every new flow.
 4. Interactions have edge cases. Every user-visible interaction has edge cases: double-click, navigate-away-mid-action, slow connection, stale state, back button. Map them.
 5. Observability is scope, not afterthought. New dashboards, alerts, and runbooks are first-class deliverables, not post-launch cleanup items.
 6. Diagrams are mandatory. No non-trivial flow goes undiagrammed. ASCII art for every new data flow, state machine, processing pipeline, dependency graph, and decision tree.
@@ -209,7 +230,7 @@ Do NOT make any code changes. Do NOT start implementation. Your only job right n
 * Observability is not optional — new codepaths need logs, metrics, or traces.
 * Security is not optional — new codepaths need threat modeling.
 * Deployments are not atomic — plan for partial states, rollbacks, and feature flags.
-* ASCII diagrams in code comments for complex designs — Models (state transitions), Services (pipelines), Controllers (request flow), Concerns (mixin behavior), Tests (non-obvious setup).
+* ASCII diagrams in code comments for complex designs — Components (state transitions), Services/Utils (pipelines), Hooks (data flow), Context providers (shared state), Tests (non-obvious setup).
 * Diagram maintenance is part of the change — stale diagrams are worse than none.
 
 ## Cognitive Patterns — How Great CEOs Think
@@ -238,8 +259,8 @@ These are not checklist items. They are thinking instincts — the cognitive mov
 When you evaluate architecture, think through the inversion reflex. When you challenge scope, apply focus as subtraction. When you assess timeline, use speed calibration. When you probe whether the plan solves a real problem, activate proxy skepticism. When you evaluate UI flows, apply hierarchy as service and subtraction default. When you review user-facing features, activate design for trust and edge case paranoia.
 
 ## Priority Hierarchy Under Context Pressure
-Step 0 > System audit > Error/rescue map > Test diagram > Failure modes > Opinionated recommendations > Everything else.
-Never skip Step 0, the system audit, the error/rescue map, or the failure modes section. These are the highest-leverage outputs.
+Step 0 > System audit > Error/recovery map > Test diagram > Failure modes > Opinionated recommendations > Everything else.
+Never skip Step 0, the system audit, the error/recovery map, or the failure modes section. These are the highest-leverage outputs.
 
 ## PRE-REVIEW SYSTEM AUDIT (before Step 0)
 Before doing anything else, run a system audit. This is not the plan review — it is the context you need to review the plan intelligently.
@@ -255,7 +276,7 @@ Then read CLAUDE.md, TODOS.md, and any existing architecture docs.
 
 **Design doc check:**
 ```bash
-SLUG=$(~/.claude/skills/gstack/browse/bin/remote-slug 2>/dev/null || basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
+SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*[:/]\([^/]*/[^/]*\)\.git$|\1|;s|.*[:/]\([^/]*/[^/]*\)$|\1|;s|/|-|g')
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null | tr '/' '-' || echo 'no-branch')
 DESIGN=$(ls -t ~/.gstack/projects/$SLUG/*-$BRANCH-design-*.md 2>/dev/null | head -1)
 [ -z "$DESIGN" ] && DESIGN=$(ls -t ~/.gstack/projects/$SLUG/*-design-*.md 2>/dev/null | head -1)
@@ -362,7 +383,7 @@ Rules:
 After the opt-in/cherry-pick ceremony, write the plan to disk so the vision and decisions survive beyond this conversation. Only run this step for EXPANSION and SELECTIVE EXPANSION modes.
 
 ```bash
-source <(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null) && mkdir -p ~/.gstack/projects/$SLUG/ceo-plans
+SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*[:/]\([^/]*/[^/]*\)\.git$|\1|;s|.*[:/]\([^/]*/[^/]*\)$|\1|;s|/|-|g') && mkdir -p ~/.gstack/projects/$SLUG/ceo-plans
 ```
 
 Before writing, check for existing CEO plans in the ceo-plans/ directory. If any are >30 days old or their branch has been merged/deleted, offer to archive them:
@@ -451,7 +472,7 @@ Evaluate and diagram:
 * Overall system design and component boundaries. Draw the dependency graph.
 * Data flow — all four paths. For every new data flow, ASCII diagram the:
     * Happy path (data flows correctly)
-    * Nil path (input is nil/missing — what happens?)
+    * Null path (input is null/undefined — what happens?)
     * Empty path (input is present but empty/zero-length — what happens?)
     * Error path (upstream call fails — what happens?)
 * State machines. ASCII diagram for every new stateful object. Include impossible/invalid transitions and what prevents them.
@@ -471,32 +492,32 @@ Evaluate and diagram:
 Required ASCII diagram: full system architecture showing new components and their relationships to existing ones.
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues or fix is obvious, state what you'll do and move on — don't waste a question. Do NOT proceed until user responds.
 
-### Section 2: Error & Rescue Map
+### Section 2: Error & Recovery Map
 This is the section that catches silent failures. It is not optional.
 For every new method, service, or codepath that can fail, fill in this table:
 ```
-  METHOD/CODEPATH          | WHAT CAN GO WRONG           | EXCEPTION CLASS
+  CODEPATH                 | WHAT CAN GO WRONG           | ERROR TYPE
   -------------------------|-----------------------------|-----------------
-  ExampleService#call      | API timeout                 | TimeoutError
-                           | API returns 429             | RateLimitError
-                           | API returns malformed JSON  | JSONParseError
-                           | DB connection pool exhausted| ConnectionPoolExhausted
-                           | Record not found            | RecordNotFound
+  useExampleQuery          | Network timeout             | ApolloError (networkError)
+                           | API returns 429             | GraphQLError (extensions.code)
+                           | API returns malformed JSON  | SyntaxError
+                           | Connection pool exhausted   | ConnectionPoolError
+                           | Record not found            | GraphQLError (NOT_FOUND)
   -------------------------|-----------------------------|-----------------
 
-  EXCEPTION CLASS              | RESCUED?  | RESCUE ACTION          | USER SEES
+  ERROR TYPE                   | CAUGHT?   | RECOVERY ACTION        | USER SEES
   -----------------------------|-----------|------------------------|------------------
-  TimeoutError                 | Y         | Retry 2x, then raise   | "Service temporarily unavailable"
-  RateLimitError               | Y         | Backoff + retry         | Nothing (transparent)
-  JSONParseError               | N ← GAP   | —                      | 500 error ← BAD
-  ConnectionPoolExhausted      | N ← GAP   | —                      | 500 error ← BAD
-  RecordNotFound               | Y         | Return nil, log warning | "Not found" message
+  ApolloError (networkError)   | Y         | Retry 2x, then throw   | "Service temporarily unavailable"
+  GraphQLError (extensions.code)| Y        | Backoff + retry         | Nothing (transparent)
+  SyntaxError                  | N ← GAP   | —                      | Crash ← BAD
+  ConnectionPoolError          | N ← GAP   | —                      | Crash ← BAD
+  GraphQLError (NOT_FOUND)     | Y         | Return null, log warning| "Not found" message
 ```
 Rules for this section:
-* Catch-all error handling (`rescue StandardError`, `catch (Exception e)`, `except Exception`) is ALWAYS a smell. Name the specific exceptions.
+* Catch-all error handling (`catch (error)` with no `instanceof` narrowing, bare `catch (e)` without specific error type checks) is ALWAYS a smell. Name the specific error types.
 * Catching an error with only a generic log message is insufficient. Log the full context: what was being attempted, with what arguments, for what user/request.
-* Every rescued error must either: retry with backoff, degrade gracefully with a user-visible message, or re-raise with added context. "Swallow and continue" is almost never acceptable.
-* For each GAP (unrescued error that should be rescued): specify the rescue action and what the user should see.
+* Every caught error must either: retry with backoff, degrade gracefully with a user-visible message, or re-throw with added context. "Swallow and continue" is almost never acceptable.
+* For each GAP (uncaught error that should be caught): specify the recovery action and what the user should see.
 * For LLM/AI service calls specifically: what happens when the response is malformed? When it's empty? When it hallucinates invalid JSON? When the model returns a refusal? Each of these is a distinct failure mode.
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues or fix is obvious, state what you'll do and move on — don't waste a question. Do NOT proceed until user responds.
 
@@ -504,12 +525,12 @@ Rules for this section:
 Security is not a sub-bullet of architecture. It gets its own section.
 Evaluate:
 * Attack surface expansion. What new attack vectors does this plan introduce? New endpoints, new params, new file paths, new background jobs?
-* Input validation. For every new user input: is it validated, sanitized, and rejected loudly on failure? What happens with: nil, empty string, string when integer expected, string exceeding max length, unicode edge cases, HTML/script injection attempts?
+* Input validation. For every new user input: is it validated, sanitized, and rejected loudly on failure? What happens with: null, empty string, string when integer expected, string exceeding max length, unicode edge cases, HTML/script injection attempts?
 * Authorization. For every new data access: is it scoped to the right user/role? Is there a direct object reference vulnerability? Can user A access user B's data by manipulating IDs?
 * Secrets and credentials. New secrets? In env vars, not hardcoded? Rotatable?
-* Dependency risk. New gems/npm packages? Security track record?
+* Dependency risk. New npm packages? Security track record?
 * Data classification. PII, payment data, credentials? Handling consistent with existing patterns?
-* Injection vectors. SQL, command, template, LLM prompt injection — check all.
+* Injection vectors. XSS, command, template, LLM prompt injection — check all.
 * Audit logging. For sensitive operations: is there an audit trail?
 
 For each finding: threat, likelihood (High/Med/Low), impact (High/Med/Low), and whether the plan mitigates it.
@@ -523,7 +544,7 @@ This section traces data through the system and interactions through the UI with
   INPUT ──▶ VALIDATION ──▶ TRANSFORM ──▶ PERSIST ──▶ OUTPUT
     │            │              │            │           │
     ▼            ▼              ▼            ▼           ▼
-  [nil?]    [invalid?]    [exception?]  [conflict?]  [stale?]
+  [null?]   [invalid?]    [error?]     [conflict?]  [stale?]
   [empty?]  [too long?]   [timeout?]    [dup key?]   [partial?]
   [wrong    [wrong type?] [OOM?]        [locked?]    [encoding?]
    type?]
@@ -555,9 +576,9 @@ Flag any unhandled edge case as a gap. For each gap, specify the fix.
 Evaluate:
 * Code organization and module structure. Does new code fit existing patterns? If it deviates, is there a reason?
 * DRY violations. Be aggressive. If the same logic exists elsewhere, flag it and reference the file and line.
-* Naming quality. Are new classes, methods, and variables named for what they do, not how they do it?
+* Naming quality. Are new components, hooks, and variables named for what they do, not how they do it?
 * Error handling patterns. (Cross-reference with Section 2 — this section reviews the patterns; Section 2 maps the specifics.)
-* Missing edge cases. List explicitly: "What happens when X is nil?" "When the API returns 429?" etc.
+* Missing edge cases. List explicitly: "What happens when X is null?" "When the API returns 429?" etc.
 * Over-engineering check. Any new abstraction solving a problem that doesn't exist yet?
 * Under-engineering check. Anything fragile, assuming happy path only, or missing obvious defensive checks?
 * Cyclomatic complexity. Flag any new method that branches more than 5 times. Propose a refactor.
@@ -581,7 +602,7 @@ Make a complete diagram of every new thing this plan introduces:
   NEW INTEGRATIONS / EXTERNAL CALLS:
     [list each]
 
-  NEW ERROR/RESCUE PATHS:
+  NEW ERROR/RECOVERY PATHS:
     [list each — cross-reference Section 2]
 ```
 For each item in the diagram:
@@ -589,11 +610,11 @@ For each item in the diagram:
 * Does a test for it exist in the plan? If not, write the test spec header.
 * What is the happy path test?
 * What is the failure path test? (Be specific — which failure?)
-* What is the edge case test? (nil, empty, boundary values, concurrent access)
+* What is the edge case test? (null, empty, boundary values, concurrent access)
 
 Test ambition check (all modes): For each new feature, answer:
 * What's the test that would make you confident shipping at 2am on a Friday?
-* What's the test a hostile QA engineer would write to break this?
+* What's the test a hostile QA engineer would write to break this? (cache staleness, optimistic rollback on error, race conditions in concurrent mutations)
 * What's the chaos test?
 
 Test pyramid check: Many unit, fewer integration, few E2E? Or inverted?
@@ -605,13 +626,13 @@ For LLM/prompt changes: Check CLAUDE.md for the "Prompt/LLM changes" file patter
 
 ### Section 7: Performance Review
 Evaluate:
-* N+1 queries. For every new ActiveRecord association traversal: is there an includes/preload?
-* Memory usage. For every new data structure: what's the maximum size in production?
-* Database indexes. For every new query: is there an index?
-* Caching opportunities. For every expensive computation or external call: should it be cached?
-* Background job sizing. For every new job: worst-case payload, runtime, retry behavior?
+* Waterfall requests. For every new GraphQL query in the render tree: are sequential queries consolidated or parallelized?
+* Memory usage. For every new data structure: what's the maximum size in production? Apollo cache growth bounded?
+* Over-fetching. For every new query: are selected fields minimal? Is pagination used for lists?
+* Caching opportunities. For every expensive computation or external call: should it be cached? Cache invalidation strategy (refetchQueries vs cache.modify vs evict)?
+* Re-render storms. Missing memo/useMemo? Unstable references in dependency arrays? Bundle size impact of new dependencies?
 * Slow paths. Top 3 slowest new codepaths and estimated p99 latency.
-* Connection pool pressure. New DB connections, Redis connections, HTTP connections?
+* Connection pool pressure. New HTTP connections, WebSocket connections, concurrent GraphQL subscriptions?
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues or fix is obvious, state what you'll do and move on — don't waste a question. Do NOT proceed until user responds.
 
 ### Section 8: Observability & Debuggability Review
@@ -623,7 +644,7 @@ Evaluate:
 * Alerting. What new alerts should exist?
 * Dashboards. What new dashboard panels do you want on day 1?
 * Debuggability. If a bug is reported 3 weeks post-ship, can you reconstruct what happened from logs alone?
-* Admin tooling. New operational tasks that need admin UI or rake tasks?
+* Admin tooling. New operational tasks that need admin UI or scripts?
 * Runbooks. For each new failure mode: what's the operational response?
 
 **EXPANSION and SELECTIVE EXPANSION addition:**
@@ -651,7 +672,7 @@ Evaluate:
 * Path dependency. Does this make future changes harder?
 * Knowledge concentration. Documentation sufficient for a new engineer?
 * Reversibility. Rate 1-5: 1 = one-way door, 5 = easily reversible.
-* Ecosystem fit. Aligns with Rails/JS ecosystem direction?
+* Ecosystem fit. Aligns with React/TS/GraphQL ecosystem direction?
 * The 1-year question. Read this plan as a new engineer in 12 months — obvious?
 
 **EXPANSION and SELECTIVE EXPANSION additions:**
@@ -706,15 +727,15 @@ List existing code/flows that partially solve sub-problems and whether the plan 
 ### "Dream state delta" section
 Where this plan leaves us relative to the 12-month ideal.
 
-### Error & Rescue Registry (from Section 2)
-Complete table of every method that can fail, every exception class, rescued status, rescue action, user impact.
+### Error & Recovery Registry (from Section 2)
+Complete table of every method that can fail, every error type, caught status, recovery action, user impact.
 
 ### Failure Modes Registry
 ```
-  CODEPATH | FAILURE MODE   | RESCUED? | TEST? | USER SEES?     | LOGGED?
+  CODEPATH | FAILURE MODE   | CAUGHT?  | TEST? | USER SEES?     | LOGGED?
   ---------|----------------|----------|-------|----------------|--------
 ```
-Any row with RESCUED=N, TEST=N, USER SEES=Silent → **CRITICAL GAP**.
+Any row with CAUGHT=N, TEST=N, USER SEES=Silent → **CRITICAL GAP**.
 
 ### TODOS.md updates
 Present each potential TODO as its own individual AskUserQuestion. Never batch TODOs — one per question. Never silently skip this step. Follow the format in `.claude/skills/review/TODOS-format.md`.
@@ -771,7 +792,7 @@ List every ASCII diagram in files this plan touches. Still accurate?
   | NOT in scope         | written (___ items)                          |
   | What already exists  | written                                     |
   | Dream state delta    | written                                     |
-  | Error/rescue registry| ___ methods, ___ CRITICAL GAPS              |
+  | Error/recovery registry| ___ methods, ___ CRITICAL GAPS            |
   | Failure modes        | ___ total, ___ CRITICAL GAPS                |
   | TODOS.md updates     | ___ items proposed                          |
   | Scope proposals      | ___ proposed, ___ accepted (EXP + SEL)      |

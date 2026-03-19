@@ -1,6 +1,7 @@
 ---
 name: document-release
 version: 1.0.0
+model: sonnet
 description: |
   Post-ship documentation update. Reads all project docs, cross-references the
   diff, updates README/ARCHITECTURE/CONTRIBUTING/CLAUDE.md to match what shipped,
@@ -226,12 +227,12 @@ git diff <base>...HEAD --name-only
 3. Discover all documentation files in the repo:
 
 ```bash
-find . -maxdepth 2 -name "*.md" -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./.gstack/*" -not -path "./.context/*" | sort
+find . -maxdepth 2 -name "*.md" -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./.local-context/*" -not -path "./.context/*" | sort
 ```
 
 4. Classify the changes into categories relevant to documentation:
-   - **New features** — new files, new commands, new skills, new capabilities
-   - **Changed behavior** — modified services, updated APIs, config changes
+   - **New features** — new files, new commands, new hooks, new capabilities
+   - **Changed behavior** — modified components, updated APIs, config changes
    - **Removed functionality** — deleted files, removed commands
    - **Infrastructure** — build system, test infrastructure, CI
 

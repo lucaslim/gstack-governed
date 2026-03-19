@@ -1,8 +1,9 @@
 ---
 name: review
 version: 1.0.0
+model: opus
 description: |
-  Pre-landing PR review. Analyzes diff against the base branch for SQL safety, LLM trust
+  Pre-landing PR review. Analyzes diff against the base branch for data mutation safety, LLM trust
   boundary violations, conditional side effects, and other structural issues. Use when
   asked to "review this PR", "code review", "pre-landing review", or "check my diff".
   Proactively suggest when the user is about to merge or land code changes.
@@ -14,6 +15,11 @@ allowed-tools:
   - Grep
   - Glob
   - AskUserQuestion
+  - mcp__serena__activate_project
+  - mcp__serena__get_symbols_overview
+  - mcp__serena__find_symbol
+  - mcp__serena__find_referencing_symbols
+  - mcp__serena__search_for_pattern
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -154,6 +160,25 @@ ATTEMPTED: [what you tried]
 RECOMMENDATION: [what the user should do next]
 ```
 
+## Serena Code Navigation (optional, reduces token usage)
+
+If Serena MCP tools are available, activate the project before code exploration:
+
+1. Run `mcp__serena__activate_project` to initialize Serena for this repository.
+2. Run `mcp__serena__check_onboarding_performed` — if onboarding hasn't been done, run `mcp__serena__onboarding`.
+
+**Prefer Serena tools over built-in alternatives for code exploration:**
+
+| Instead of | Use |
+|------------|-----|
+| `Grep` for code search | `mcp__serena__search_for_pattern` |
+| `Glob` for finding files | `mcp__serena__find_file` |
+| `Read` entire source files | `mcp__serena__get_symbols_overview` → `mcp__serena__find_symbol(include_body=true)` |
+| Searching for functions/classes | `mcp__serena__find_symbol(name_path_pattern)` |
+| Finding usages/callers | `mcp__serena__find_referencing_symbols` |
+
+**Fallback:** If Serena tools fail or are not activated, fall back to built-in Grep/Glob/Read tools.
+
 ## Step 0: Detect base branch
 
 Determine which branch this PR targets. Use the result as "the base branch" in all subsequent steps.
@@ -229,16 +254,6 @@ Read `.claude/skills/review/checklist.md`.
 
 ---
 
-## Step 2.5: Check for Greptile review comments
-
-Read `.claude/skills/review/greptile-triage.md` and follow the fetch, filter, classify, and **escalation detection** steps.
-
-**If no PR exists, `gh` fails, API returns an error, or there are zero Greptile comments:** Skip this step silently. Greptile integration is additive — the review works without it.
-
-**If Greptile comments are found:** Store the classifications (VALID & ACTIONABLE, VALID BUT ALREADY FIXED, FALSE POSITIVE, SUPPRESSED) — you will need them in Step 5.
-
----
-
 ## Step 3: Get the diff
 
 Fetch the latest base branch to avoid false positives from stale local state:
@@ -255,7 +270,7 @@ Run `git diff origin/<base>` to get the full diff. This includes both committed 
 
 Apply the checklist against the diff in two passes:
 
-1. **Pass 1 (CRITICAL):** SQL & Data Safety, Race Conditions & Concurrency, LLM Output Trust Boundary, Enum & Value Completeness
+1. **Pass 1 (CRITICAL):** Data Mutation Safety, Race Conditions & Concurrency, LLM Output Trust Boundary, Enum & Value Completeness
 2. **Pass 2 (INFORMATIONAL):** Conditional Side Effects, Magic Numbers & String Coupling, Dead Code & Consistency, LLM Prompt Issues, Test Gaps, View/Frontend
 
 **Enum & Value Completeness requires reading code OUTSIDE the diff.** When the diff introduces a new enum value, status, tier, or type constant, use Grep to find all files that reference sibling values, then Read those files to check if the new value is handled. This is the one category where within-diff review is insufficient.
@@ -332,12 +347,12 @@ Example format:
 ```
 I auto-fixed 5 issues. 2 need your input:
 
-1. [CRITICAL] app/models/post.rb:42 — Race condition in status transition
-   Fix: Add `WHERE status = 'draft'` to the UPDATE
+1. [CRITICAL] src/hooks/usePost.ts:42 — Race condition in status transition
+   Fix: Add optimistic locking check before the mutation
    → A) Fix  B) Skip
 
-2. [INFORMATIONAL] app/services/generator.rb:88 — LLM output not type-checked before DB write
-   Fix: Add JSON schema validation
+2. [INFORMATIONAL] src/services/generator.ts:88 — LLM output not type-checked before cache write
+   Fix: Add Zod schema validation
    → A) Fix  B) Skip
 
 RECOMMENDATION: Fix both — #1 is a real race condition, #2 prevents silent data corruption.
@@ -360,32 +375,6 @@ Before producing the final review output:
 - Never say "likely handled" or "probably tested" — verify or flag as unknown
 
 **Rationalization prevention:** "This looks fine" is not a finding. Either cite evidence it IS fine, or flag it as unverified.
-
-### Greptile comment resolution
-
-After outputting your own findings, if Greptile comments were classified in Step 2.5:
-
-**Include a Greptile summary in your output header:** `+ N Greptile comments (X valid, Y fixed, Z FP)`
-
-Before replying to any comment, run the **Escalation Detection** algorithm from greptile-triage.md to determine whether to use Tier 1 (friendly) or Tier 2 (firm) reply templates.
-
-1. **VALID & ACTIONABLE comments:** These are included in your findings — they follow the Fix-First flow (auto-fixed if mechanical, batched into ASK if not) (A: Fix it now, B: Acknowledge, C: False positive). If the user chooses A (fix), reply using the **Fix reply template** from greptile-triage.md (include inline diff + explanation). If the user chooses C (false positive), reply using the **False Positive reply template** (include evidence + suggested re-rank), save to both per-project and global greptile-history.
-
-2. **FALSE POSITIVE comments:** Present each one via AskUserQuestion:
-   - Show the Greptile comment: file:line (or [top-level]) + body summary + permalink URL
-   - Explain concisely why it's a false positive
-   - Options:
-     - A) Reply to Greptile explaining why this is incorrect (recommended if clearly wrong)
-     - B) Fix it anyway (if low-effort and harmless)
-     - C) Ignore — don't reply, don't fix
-
-   If the user chooses A, reply using the **False Positive reply template** from greptile-triage.md (include evidence + suggested re-rank), save to both per-project and global greptile-history.
-
-3. **VALID BUT ALREADY FIXED comments:** Reply using the **Already Fixed reply template** from greptile-triage.md — no AskUserQuestion needed:
-   - Include what was done and the fixing commit SHA
-   - Save to both per-project and global greptile-history
-
-4. **SUPPRESSED comments:** Skip silently — these are known false positives from previous triage.
 
 ---
 
@@ -470,4 +459,3 @@ If Codex is not available, skip this step silently.
 - **Fix-first, not read-only.** AUTO-FIX items are applied directly. ASK items are only applied after user approval. Never commit, push, or create PRs — that's /ship's job.
 - **Be terse.** One line problem, one line fix. No preamble.
 - **Only flag real problems.** Skip anything that's fine.
-- **Use Greptile reply templates from greptile-triage.md.** Every reply includes evidence. Never post vague replies.
