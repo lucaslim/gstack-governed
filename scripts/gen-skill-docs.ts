@@ -13,6 +13,7 @@ import { COMMAND_DESCRIPTIONS } from '../browse/src/commands';
 import { SNAPSHOT_FLAGS } from '../browse/src/snapshot';
 import * as fs from 'fs';
 import * as path from 'path';
+import { overlay, TEMPLATE_CANDIDATES } from './stack-overlay';
 
 const ROOT = path.resolve(import.meta.dir, '..');
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -1365,25 +1366,28 @@ function processTemplate(tmplPath: string): { outputPath: string; content: strin
 
 function findTemplates(): string[] {
   const templates: string[] = [];
-  const candidates = [
-    path.join(ROOT, 'SKILL.md.tmpl'),
-    path.join(ROOT, 'browse', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'qa', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'qa-only', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'setup-browser-cookies', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'ship', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'review', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'plan-ceo-review', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'plan-eng-review', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'retro', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'plan-design-review', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'qa-design-review', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'design-consultation', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'document-release', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'sync-gstack', 'SKILL.md.tmpl'),
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) templates.push(p);
+  const candidateSet = new Set(
+    TEMPLATE_CANDIDATES.map((rel) => path.join(ROOT, rel)),
+  );
+
+  // Add extra templates from overlay (fork-only skills)
+  if (overlay?.extraTemplates) {
+    for (const extra of overlay.extraTemplates) {
+      candidateSet.add(path.join(ROOT, extra));
+    }
+  }
+
+  const skipSet = new Set(overlay?.skipTemplates ?? []);
+
+  for (const p of candidateSet) {
+    if (!fs.existsSync(p)) continue;
+
+    // Check skip list (overlay says fork doesn't ship these)
+    const dir = path.basename(path.dirname(p));
+    const skillName = dir === path.basename(ROOT) ? 'gstack' : dir;
+    if (skipSet.has(skillName)) continue;
+
+    templates.push(p);
   }
   return templates;
 }
